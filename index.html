@@ -17,58 +17,58 @@ font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic","Noto Sans 
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%;text-size-adjust:100%;overflow-x:hidden}
 body{margin:0;background:var(--paper);color:var(--ink);font-size:14px;line-height:1.5;overflow-x:hidden;max-width:100vw}
-.app>*,.views>*,.below>*,.row2>*{min-width:0}
 #three canvas{display:block;width:100%!important;height:100%!important}
-.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;padding:20px 24px 16px;border-bottom:1px solid var(--rule);background:var(--sheet)}
-h1{font-size:22px;font-weight:600;letter-spacing:-.015em;margin:0}
-.top p{margin:4px 0 0;color:var(--ink2);font-size:13.5px;max-width:70ch}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:12px 20px;border-bottom:1px solid var(--rule);background:var(--sheet)}
+.top-l{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;min-width:0}
+h1{font-size:20px;font-weight:600;letter-spacing:-.015em;margin:0;white-space:nowrap}
+.top p{margin:0;color:var(--ink2);font-size:13px}
 .tools{display:flex;gap:8px}
-.app{display:grid;grid-template-columns:310px minmax(0,1fr)}
-.side{border-right:1px solid var(--rule);padding:4px 20px 28px;background:var(--sheet)}
-.side section{padding:16px 0 18px;border-bottom:1px solid var(--rule)}
-.side section:last-child{border-bottom:0}
-h2{font-size:14.5px;font-weight:600;margin:0 0 12px;display:flex;align-items:center;gap:9px}
-h3{font-size:13.5px;font-weight:600;margin:0 0 10px}
-.n{width:21px;height:21px;border:1.5px solid var(--ink);border-radius:50%;display:inline-grid;place-items:center;font-size:11.5px;font-weight:600;flex:none}
-main{padding:16px 20px 28px;min-width:0}
-.views{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px}
+.bar{background:var(--sheet);border-bottom:1px solid var(--rule);padding:0 20px}
+.bar-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;padding:10px 0}
+.bar-row+.bar-row{border-top:1px dashed var(--rule)}
+.grp{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-width:0}
+.grp.grow{flex:1 1 320px}
+.grp>b{font-size:14px;font-weight:600;white-space:nowrap;display:flex;align-items:center;gap:7px}
+.n{width:20px;height:20px;border:1.5px solid var(--ink);border-radius:50%;display:inline-grid;place-items:center;font-size:11px;font-weight:600;flex:none}
+.sep{width:1px;align-self:stretch;background:var(--rule)}
+.lbl{font-size:12.5px;color:var(--ink2);white-space:nowrap}
+.inl{display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--ink2)}
+.inl input{font:inherit;font-size:15px;color:var(--ink);background:var(--room);border:1px solid var(--rule);border-radius:5px;padding:5px 8px;width:84px}
+.err{color:var(--warn);font-size:12.5px}
+.err:empty{display:none}
+.swatches{display:flex;flex-wrap:wrap;gap:5px}
+.sw{display:flex;align-items:center;gap:5px;font:inherit;font-size:12.5px;padding:4px 9px 4px 5px;border:1px solid var(--rule);border-radius:20px;background:var(--sheet);color:var(--ink);cursor:pointer;white-space:nowrap}
+.sw i{width:15px;height:15px;border-radius:50%;border:1px solid rgba(0,0,0,.25);display:block}
+.sw[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+select{font:inherit;font-size:13px;color:var(--ink);background:var(--room);border:1px solid var(--rule);border-radius:5px;padding:6px 8px;flex:1 1 220px;min-width:0;max-width:560px}
+#catalog{flex:1 1 600px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;min-width:0}
+.cat{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;align-items:center;padding:6px 8px;border:1px solid var(--rule);border-radius:5px;background:var(--room)}
+.cat svg{width:22px;height:32px}
+.cat b{font-weight:600;font-size:13px;display:block;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cat small{display:none}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+.chip{font:inherit;font-size:12px;padding:2px 7px;border:1px solid var(--rule);border-radius:4px;background:var(--sheet);color:var(--ink);cursor:pointer}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.check{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--ink2);white-space:nowrap}
+main{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;padding:14px 20px 24px}
+.views{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;min-width:0}
 .pane{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
-.pane-h{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--rule);font-size:13px;font-weight:600}
+.pane-h{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--rule);font-size:13px;font-weight:600;flex-wrap:wrap}
 .pane-h span{font-weight:400;color:var(--ink2);font-size:12.5px}
-#plan{width:100%;height:500px;display:block;touch-action:none;background:var(--paper);user-select:none}
-#three{height:500px;touch-action:none;cursor:grab;background:var(--paper);position:relative}
-.below{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
+#plan,#three{height:clamp(380px,calc(100vh - 315px),760px)}
+#plan{width:100%;display:block;touch-action:none;background:var(--paper);user-select:none}
+#three{touch-action:none;cursor:grab;background:var(--paper);position:relative}
+.below{display:flex;flex-direction:column;gap:14px;min-width:0}
 .card{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding:14px 16px}
+h3{font-size:13.5px;font-weight:600;margin:0 0 10px}
 .muted{color:var(--ink2);font-size:13px}
-.btn{font:inherit;font-size:13px;padding:6px 11px;border:1px solid var(--rule);background:var(--sheet);color:var(--ink);border-radius:5px;cursor:pointer;line-height:1.3}
+.btn{font:inherit;font-size:13px;padding:6px 11px;border:1px solid var(--rule);background:var(--sheet);color:var(--ink);border-radius:5px;cursor:pointer;line-height:1.3;white-space:nowrap}
 .btn:hover{border-color:var(--ink2)}
 .btn.primary{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
 .btn.danger{color:var(--warn)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.field{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--ink2)}
+.field{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--ink2);min-width:0}
 .field input{font:inherit;font-size:15px;color:var(--ink);background:var(--room);border:1px solid var(--rule);border-radius:5px;padding:7px 9px;width:100%}
-.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:end}
-.err{color:var(--warn);font-size:12.5px;margin-top:6px;min-height:0}
-.sw-label{font-size:12.5px;color:var(--ink2);margin:0 0 6px}
-.swatches{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-.sw{display:flex;align-items:center;gap:6px;font:inherit;font-size:12.5px;padding:5px 9px 5px 6px;border:1px solid var(--rule);border-radius:20px;background:var(--sheet);color:var(--ink);cursor:pointer}
-.sw i{width:16px;height:16px;border-radius:50%;border:1px solid rgba(0,0,0,.25);display:block}
-.sw[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
-.cat{display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;padding:9px 0;border-top:1px dashed var(--rule)}
-.cat:first-of-type{border-top:0}
-.cat svg{width:34px;height:50px}
-.cat b{font-weight:600;font-size:13.5px}
-.cat small{display:block;color:var(--ink2);font-size:12px;margin-bottom:5px}
-.chips{display:flex;flex-wrap:wrap;gap:5px}
-.chip{font:inherit;font-size:12px;padding:3px 9px;border:1px solid var(--rule);border-radius:4px;background:var(--room);color:var(--ink);cursor:pointer}
-.chip:hover{border-color:var(--accent);color:var(--accent)}
-.check{display:flex;gap:7px;align-items:center;font-size:12.5px;color:var(--ink2);margin-top:10px}
-select{font:inherit;font-size:13px;color:var(--ink);background:var(--room);border:1px solid var(--rule);border-radius:5px;padding:6px 8px;width:100%;margin-bottom:8px}
-.wall{margin-bottom:12px}
-.wall:last-child{margin-bottom:0}
-.wall-t{display:flex;justify-content:space-between;font-size:13px}
-.strip{position:relative;height:7px;background:var(--grid);border-radius:2px;margin:5px 0 4px;overflow:hidden}
-.strip i{position:absolute;top:0;bottom:0;background:var(--ink2)}
 .parts{list-style:none;margin:0;padding:0}
 .parts li{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--rule);font-size:13px}
 .parts li:last-child{border-bottom:0}
@@ -80,16 +80,19 @@ select{font:inherit;font-size:13px;color:var(--ink);background:var(--room);borde
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--sheet);font-size:13px;padding:8px 14px;border-radius:5px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw}
 #toast.on{opacity:1}
 kbd{font:inherit;font-size:11.5px;border:1px solid var(--rule);border-bottom-width:2px;border-radius:3px;padding:0 4px}
-@media (max-width:1180px){.views{grid-template-columns:1fr}}
-@media (max-width:820px){.app{grid-template-columns:1fr}.side{border-right:0;border-bottom:1px solid var(--rule);padding:4px 16px 16px}main{padding:12px 12px 24px}.below{grid-template-columns:1fr}#plan{height:62vw;min-height:280px;max-height:420px}#three{height:70vw;min-height:300px;max-height:440px}.top{padding:14px 16px}h1{font-size:19px}.top p{font-size:13px}.pane-h{flex-wrap:wrap}.pane-h span{font-size:12px}.field input{font-size:16px}select{font-size:16px}}
+@media (max-width:1400px){main{grid-template-columns:minmax(0,1fr)}.below{display:grid;grid-template-columns:1fr 1fr}#plan,#three{height:clamp(380px,calc(100vh - 300px),640px)}}
+@media (max-width:1100px){.views{grid-template-columns:minmax(0,1fr)}.sep{display:none}}
+@media (max-width:820px){.top{padding:12px 16px}.top p{display:none}h1{font-size:19px}.bar{padding:0 14px}.grp,.grp.grow{flex:1 1 100%}
+ main{padding:12px 12px 24px}.below{grid-template-columns:1fr}#plan{height:62vw;min-height:280px;max-height:420px}#three{height:70vw;min-height:300px;max-height:440px}
+ .inl input,select{font-size:16px}.field input{font-size:16px}.cat small{display:block;color:var(--ink2);font-size:11.5px}#catalog{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}}
 @media (prefers-reduced-motion:reduce){#toast{transition:none}}
 </style>
 </head>
 <body>
 <header class="top">
-  <div>
+  <div class="top-l">
     <h1>드레스룸 배치 플래너</h1>
-    <p>방 크기를 넣고 모듈을 골라 벽에 붙여 보세요. 모듈 폭은 실제 치수(표기 폭 + 6mm), 깊이는 40cm로 계산해요.</p>
+    <p>모듈 폭은 실제 치수(표기 폭 + 6mm), 깊이는 40cm로 계산해요.</p>
   </div>
   <div class="tools">
     <button class="btn" id="undoBtn" title="Ctrl+Z">되돌리기</button>
@@ -97,57 +100,52 @@ kbd{font:inherit;font-size:11.5px;border:1px solid var(--rule);border-bottom-wid
   </div>
 </header>
 
-<div class="app">
-  <aside class="side">
-    <section>
-      <h2><span class="n">1</span>방 크기</h2>
-      <div class="row2">
-        <label class="field">가로 (cm)<input id="roomW" type="number" inputmode="decimal" min="50" max="2000" step="0.1"></label>
-        <label class="field">세로 (cm)<input id="roomD" type="number" inputmode="decimal" min="50" max="2000" step="0.1"></label>
-        <button class="btn primary" id="roomApply">적용</button>
-      </div>
-      <div class="err" id="roomErr" role="alert"></div>
-    </section>
-
-    <section>
-      <h2><span class="n">2</span>색상</h2>
-      <p class="sw-label">기둥</p>
-      <div class="swatches" id="pillarSw"></div>
-      <p class="sw-label">선반</p>
-      <div class="swatches" id="shelfSw" style="margin-bottom:0"></div>
-    </section>
-
-    <section>
-      <h2><span class="n">3</span>모듈 추가</h2>
-      <div id="catalog"></div>
-      <label class="check"><input type="checkbox" id="autoRot" checked> 벽 가까이 끌면 벽을 등지도록 자동 회전</label>
-    </section>
-
-    <section>
-      <h3>세트로 시작하기</h3>
+<div class="bar">
+  <div class="bar-row">
+    <div class="grp">
+      <b><span class="n">1</span>방 크기</b>
+      <label class="inl">가로<input id="roomW" type="number" inputmode="decimal" min="50" max="2000" step="0.1" aria-label="방 가로 cm"></label>
+      <label class="inl">세로<input id="roomD" type="number" inputmode="decimal" min="50" max="2000" step="0.1" aria-label="방 세로 cm"></label>
+      <span class="lbl">cm</span>
+      <button class="btn primary" id="roomApply">적용</button>
+      <span class="err" id="roomErr" role="alert"></span>
+    </div>
+    <span class="sep"></span>
+    <div class="grp">
+      <b><span class="n">2</span>색상</b>
+      <span class="lbl">기둥</span><div class="swatches" id="pillarSw"></div>
+      <span class="lbl">선반</span><div class="swatches" id="shelfSw"></div>
+    </div>
+    <span class="sep"></span>
+    <div class="grp grow">
+      <b>세트</b>
       <select id="setSel" aria-label="세트 선택"></select>
-      <button class="btn" id="setBtn" style="width:100%">세트로 배치</button>
-      <p class="muted" style="margin:6px 0 0;font-size:12px">현재 배치를 세트로 바꿔요. 위쪽 벽 기준으로 놓이고, 코너 세트는 왼쪽 벽까지 이어져요.</p>
-    </section>
-  </aside>
-
-  <main>
-    <div class="views">
-      <div class="pane">
-        <div class="pane-h">평면도<span>끌어서 이동, <kbd>R</kbd> 회전, <kbd>Del</kbd> 삭제</span></div>
-        <svg id="plan" role="img" aria-label="방 평면도와 배치된 모듈"><g id="planG"></g></svg>
-      </div>
-      <div class="pane">
-        <div class="pane-h">3D 미리보기<span style="display:flex;gap:8px;align-items:center">모듈은 3D에서도 끌 수 있어요 <button class="btn" id="camReset" style="padding:3px 9px;font-size:12px">시점 초기화</button></span></div>
-        <div id="three"></div>
-      </div>
+      <button class="btn" id="setBtn" title="현재 배치를 세트로 바꿔요. 코너 세트는 왼쪽 벽까지 이어져요.">세트로 배치</button>
     </div>
-    <div class="below">
-      <div class="card" id="selPanel"></div>
-      <div class="card"><h3>구성 목록</h3><div id="parts"></div></div>
-    </div>
-  </main>
+  </div>
+  <div class="bar-row">
+    <div class="grp"><b><span class="n">3</span>모듈 추가</b></div>
+    <div id="catalog"></div>
+    <label class="check"><input type="checkbox" id="autoRot" checked> 벽에 끌면 자동 회전</label>
+  </div>
 </div>
+
+<main>
+  <div class="views">
+    <div class="pane">
+      <div class="pane-h">평면도<span>끌어서 이동, <kbd>R</kbd> 회전, <kbd>Del</kbd> 삭제</span></div>
+      <svg id="plan" role="img" aria-label="방 평면도와 배치된 모듈"><g id="planG"></g></svg>
+    </div>
+    <div class="pane">
+      <div class="pane-h">3D 미리보기<span style="display:flex;gap:8px;align-items:center">3D에서도 끌 수 있어요 <button class="btn" id="camReset" style="padding:3px 9px;font-size:12px">시점 초기화</button></span></div>
+      <div id="three"></div>
+    </div>
+  </div>
+  <div class="below">
+    <div class="card" id="selPanel"></div>
+    <div class="card"><h3>구성 목록</h3><div id="parts"></div></div>
+  </div>
+</main>
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -559,7 +557,7 @@ function elev(type){
   if(type==='mirror')s+=sh(14.5)+sh(25)+sh(35.5)+`<rect x="5" y="6" width="10" height="38" fill="var(--sheet)" stroke="currentColor" stroke-width="1"/>`;
   return `<svg viewBox="0 0 34 50" aria-hidden="true" style="color:var(--ink2)">${s}</svg>`;
 }
-$('catalog').innerHTML=Object.entries(TYPES).map(([k,t])=>`<div class="cat">${elev(k)}<div><b>${t.name}</b><small>${t.desc}</small><div class="chips">${
+$('catalog').innerHTML=Object.entries(TYPES).map(([k,t])=>`<div class="cat" title="${t.desc}">${elev(k)}<div><b>${t.name}</b><small>${t.desc}</small><div class="chips">${
   k==='corner'?`<button class="chip" data-t="corner" data-w="0" aria-label="코너장 추가">${fmt(CORNER)}×${fmt(CORNER)} 추가</button>`:t.widths.map(w=>`<button class="chip" data-t="${k}" data-w="${w}" aria-label="${w} ${t.name} 추가">${w}</button>`).join('')}</div></div></div>`).join('');
 $('catalog').onclick=e=>{const b=e.target.closest('[data-t]');if(b)addModule(b.dataset.t,+b.dataset.w)};
 $('setSel').innerHTML=[...new Set(SETS.map(x=>x.g))].map(g=>`<optgroup label="${g}">${SETS.map((x,i)=>x.g===g?`<option value="${i}">${setLabel(x)}</option>`:'').join('')}</optgroup>`).join('');
