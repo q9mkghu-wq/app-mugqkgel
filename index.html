@@ -15,8 +15,10 @@ font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic","Noto Sans 
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#16171A;--sheet:#1F2125;--ink:#E7E8E6;--ink2:#A3A7AC;--rule:#3A3D43;--grid:#2A2D32;--room:#24272C;--accent:#79A3F2;--accent-soft:rgba(121,163,242,.14);--warn:#F0776C;--warn-soft:rgba(240,119,108,.16)}}
 :root[data-theme="dark"]{--paper:#16171A;--sheet:#1F2125;--ink:#E7E8E6;--ink2:#A3A7AC;--rule:#3A3D43;--grid:#2A2D32;--room:#24272C;--accent:#79A3F2;--accent-soft:rgba(121,163,242,.14);--warn:#F0776C;--warn-soft:rgba(240,119,108,.16)}
 *,*::before,*::after{box-sizing:inherit}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
-body{margin:0;background:var(--paper);color:var(--ink);font-size:14px;line-height:1.5}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%;text-size-adjust:100%;overflow-x:hidden}
+body{margin:0;background:var(--paper);color:var(--ink);font-size:14px;line-height:1.5;overflow-x:hidden;max-width:100vw}
+.app>*,.views>*,.below>*,.row2>*{min-width:0}
+#three canvas{display:block;width:100%!important;height:100%!important}
 .top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;padding:20px 24px 16px;border-bottom:1px solid var(--rule);background:var(--sheet)}
 h1{font-size:22px;font-weight:600;letter-spacing:-.015em;margin:0}
 .top p{margin:4px 0 0;color:var(--ink2);font-size:13.5px;max-width:70ch}
@@ -45,7 +47,7 @@ main{padding:16px 20px 28px;min-width:0}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .field{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--ink2)}
 .field input{font:inherit;font-size:15px;color:var(--ink);background:var(--room);border:1px solid var(--rule);border-radius:5px;padding:7px 9px;width:100%}
-.row2{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:end}
 .err{color:var(--warn);font-size:12.5px;margin-top:6px;min-height:0}
 .sw-label{font-size:12.5px;color:var(--ink2);margin:0 0 6px}
 .swatches{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
@@ -79,7 +81,7 @@ select{font:inherit;font-size:13px;color:var(--ink);background:var(--room);borde
 #toast.on{opacity:1}
 kbd{font:inherit;font-size:11.5px;border:1px solid var(--rule);border-bottom-width:2px;border-radius:3px;padding:0 4px}
 @media (max-width:1180px){.views{grid-template-columns:1fr}}
-@media (max-width:820px){.app{grid-template-columns:1fr}.side{border-right:0;border-bottom:1px solid var(--rule)}.below{grid-template-columns:1fr}#plan,#three{height:400px}.top{padding:16px}}
+@media (max-width:820px){.app{grid-template-columns:1fr}.side{border-right:0;border-bottom:1px solid var(--rule);padding:4px 16px 16px}main{padding:12px 12px 24px}.below{grid-template-columns:1fr}#plan{height:62vw;min-height:280px;max-height:420px}#three{height:70vw;min-height:300px;max-height:440px}.top{padding:14px 16px}h1{font-size:19px}.top p{font-size:13px}.pane-h{flex-wrap:wrap}.pane-h span{font-size:12px}.field input{font-size:16px}select{font-size:16px}}
 @media (prefers-reduced-motion:reduce){#toast{transition:none}}
 </style>
 </head>
@@ -495,7 +497,7 @@ box3.addEventListener('pointermove',e=>{
 const end3=()=>{box3.style.cursor='';if(drag&&drag.src==='3d'){endDrag();return}if(orbit&&!orbit.moved&&sel!==null){sel=null;refreshAll()}orbit=null};
 box3.addEventListener('pointerup',end3);box3.addEventListener('pointercancel',end3);
 box3.addEventListener('wheel',e=>{e.preventDefault();orb.r=Math.min(30,Math.max(1.5,orb.r*(1+e.deltaY*0.0012)))},{passive:false});
-function size3(){const w=box3.clientWidth,h=box3.clientHeight;if(!w||!h)return;R.setSize(w,h);cam.aspect=w/h;cam.updateProjectionMatrix()}
+function size3(){const w=box3.clientWidth,h=box3.clientHeight;if(!w||!h)return;R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()}
 new ResizeObserver(size3).observe(box3);
 new ResizeObserver(()=>renderPlan()).observe(svg);
 (function loop(){placeCam();R.render(scene,cam);requestAnimationFrame(loop)})();
