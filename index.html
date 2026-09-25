@@ -113,7 +113,7 @@ kbd{font:inherit;font-size:11.5px;border:1px solid var(--rule);border-bottom-wid
     <span class="sep"></span>
     <div class="grp">
       <b><span class="n">2</span>색상</b>
-      <span class="lbl">기둥</span><div class="swatches" id="pillarSw"></div>
+      <span class="lbl">프레임</span><div class="swatches" id="pillarSw"></div>
       <span class="lbl">선반</span><div class="swatches" id="shelfSw"></div>
     </div>
     <span class="sep"></span>
@@ -518,11 +518,13 @@ function renderSel(){
   $('posX').onchange=e=>onPos('x',e.target.value);$('posY').onchange=e=>onPos('y',e.target.value);
 }
 function renderParts(){
-  if(!S.items.length){$('parts').innerHTML='<p class="muted" style="margin:0">아직 배치한 모듈이 없어요.</p>';return}
+  const dot=h=>`<i style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${h};border:1px solid rgba(0,0,0,.25);vertical-align:-1px;margin-right:6px"></i>`;
+  const colors=`<ul class="parts" style="margin-bottom:12px"><li><span>프레임 색상</span><span>${dot(PILLAR[S.pillar].hex)}${PILLAR[S.pillar].name}</span></li><li><span>선반 색상</span><span>${dot(SHELF[S.shelf].hex)}${SHELF[S.shelf].name}</span></li></ul>`;
+  if(!S.items.length){$('parts').innerHTML=colors+'<p class="muted" style="margin:0">아직 배치한 모듈이 없어요.</p>';return}
   const m=new Map();S.items.forEach(it=>{const k=nameOf(it);m.set(k,(m.get(k)||0)+1)});
   const nb=S.items.filter(bad).length;
-  $('parts').innerHTML=`<ul class="parts">${[...m].map(([k,n])=>`<li><span>${k}</span><span>${n}개</span></li>`).join('')}</ul>
-  <p class="muted" style="margin:10px 0 0">모듈 ${S.items.length}개, 기둥 ${PILLAR[S.pillar].name}, 선반 ${SHELF[S.shelf].name}</p>
+  $('parts').innerHTML=colors+`<ul class="parts" style="border-top:1px solid var(--rule)">${[...m].map(([k,n])=>`<li><span>${k}</span><span>${n}개</span></li>`).join('')}</ul>
+  <p class="muted" style="margin:10px 0 0">모듈 총 ${S.items.length}개</p>
   ${nb?`<p class="status bad" style="margin:4px 0 0">겹치거나 방 밖에 있는 모듈이 ${nb}개 있어요.</p>`:''}`;
 }
 function refreshAll(){renderPlan();sync3D();renderSel();renderParts();save()}
