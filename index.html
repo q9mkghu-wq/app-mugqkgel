@@ -1,1228 +1,584 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>시스템행거장 배치 플래너</title>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>드레스룸 배치 플래너</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; }
-  
-  header {
-    background: linear-gradient(135deg, #2c3e50, #3498db);
-    color: white;
-    padding: 16px 24px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  }
-  header h1 { font-size: 22px; font-weight: 700; }
-  header span { font-size: 13px; opacity: 0.8; }
-
-  .main-container {
-    display: grid;
-    grid-template-columns: 320px 1fr;
-    gap: 0;
-    height: calc(100vh - 60px);
-  }
-
-  /* 좌측 패널 */
-  .left-panel {
-    background: white;
-    overflow-y: auto;
-    border-right: 1px solid #e0e0e0;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .section-title {
-    background: #2c3e50;
-    color: white;
-    padding: 10px 16px;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-  }
-
-  /* 방 설정 */
-  .room-settings {
-    padding: 16px;
-    border-bottom: 1px solid #eee;
-  }
-  .room-settings label {
-    display: block;
-    font-size: 12px;
-    color: #666;
-    margin-bottom: 4px;
-    font-weight: 600;
-  }
-  .input-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 10px;
-  }
-  .input-group input {
-    width: 100%;
-    padding: 8px 10px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 14px;
-    transition: border-color 0.2s;
-  }
-  .input-group input:focus { outline: none; border-color: #3498db; }
-  .input-unit { font-size: 11px; color: #999; margin-top: 2px; }
-
-  .btn-apply {
-    width: 100%;
-    padding: 9px;
-    background: #3498db;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  .btn-apply:hover { background: #2980b9; }
-
-  /* 모듈 카탈로그 */
-  .module-catalog { flex: 1; overflow-y: auto; }
-  .category-block { border-bottom: 1px solid #eee; }
-  .category-header {
-    padding: 10px 16px;
-    background: #f8f9fa;
-    font-size: 12px;
-    font-weight: 700;
-    color: #555;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    user-select: none;
-  }
-  .category-header:hover { background: #e9ecef; }
-  .category-header .arrow { transition: transform 0.2s; }
-  .category-header.collapsed .arrow { transform: rotate(-90deg); }
-  .module-list { display: none; padding: 8px; }
-  .module-list.open { display: block; }
-
-  .module-card {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    margin-bottom: 6px;
-    cursor: pointer;
-    transition: all 0.2s;
-    background: white;
-  }
-  .module-card:hover { border-color: #3498db; background: #f0f8ff; }
-  .module-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    flex-shrink: 0;
-  }
-  .module-info { flex: 1; min-width: 0; }
-  .module-name { font-size: 12px; font-weight: 700; color: #333; }
-  .module-size { font-size: 11px; color: #888; margin-top: 1px; }
-  .module-price { font-size: 11px; color: #e74c3c; font-weight: 600; }
-  .btn-add-module {
-    padding: 4px 10px;
-    background: #27ae60;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .btn-add-module:hover { background: #219a52; }
-
-  /* 우측 패널 */
-  .right-panel {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .canvas-toolbar {
-    background: white;
-    border-bottom: 1px solid #e0e0e0;
-    padding: 10px 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-  .toolbar-group { display: flex; align-items: center; gap: 8px; }
-  .toolbar-label { font-size: 12px; color: #666; font-weight: 600; }
-  .btn-toolbar {
-    padding: 6px 12px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    background: white;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .btn-toolbar:hover { background: #f0f8ff; border-color: #3498db; color: #3498db; }
-  .btn-toolbar.danger:hover { background: #fff0f0; border-color: #e74c3c; color: #e74c3c; }
-  .btn-toolbar.primary {
-    background: #3498db;
-    color: white;
-    border-color: #3498db;
-  }
-  .btn-toolbar.primary:hover { background: #2980b9; }
-
-  .scale-info {
-    margin-left: auto;
-    font-size: 12px;
-    color: #888;
-    background: #f8f9fa;
-    padding: 4px 10px;
-    border-radius: 4px;
-  }
-
-  /* 캔버스 영역 */
-  .canvas-area {
-    flex: 1;
-    overflow: auto;
-    background: #e8e8e8;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  #room-canvas-wrap {
-    position: relative;
-    background: white;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-  }
-
-  #room-canvas { display: block; cursor: default; }
-
-  /* 배치된 모듈 정보 패널 */
-  .placed-panel {
-    background: white;
-    border-top: 1px solid #e0e0e0;
-    max-height: 220px;
-    overflow-y: auto;
-  }
-  .placed-header {
-    padding: 8px 16px;
-    background: #2c3e50;
-    color: white;
-    font-size: 12px;
-    font-weight: 600;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-  .placed-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 10px 16px;
-  }
-  .placed-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 10px;
-    border: 1px solid #e0e0e0;
-    border-radius: 6px;
-    font-size: 12px;
-    background: #f9f9f9;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .placed-item:hover { border-color: #e74c3c; background: #fff0f0; }
-  .placed-item.selected { border-color: #3498db; background: #e8f4fd; }
-  .placed-item-dot {
-    width: 10px; height: 10px;
-    border-radius: 2px;
-  }
-  .placed-item-name { font-weight: 600; color: #333; }
-  .placed-item-pos { color: #888; font-size: 11px; }
-  .placed-item-del {
-    color: #e74c3c;
-    font-weight: 700;
-    cursor: pointer;
-    padding: 0 2px;
-  }
-
-  /* 합계 바 */
-  .summary-bar {
-    background: #2c3e50;
-    color: white;
-    padding: 8px 16px;
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    align-items: center;
-    font-size: 12px;
-  }
-  .summary-item { display: flex; flex-direction: column; gap: 2px; }
-  .summary-label { opacity: 0.7; font-size: 11px; }
-  .summary-value { font-weight: 700; font-size: 14px; }
-  .summary-total { margin-left: auto; }
-  .summary-total .summary-value { font-size: 18px; color: #f1c40f; }
-
-  /* 저장된 플랜 모달 */
-  .modal-overlay {
-    display: none;
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-  }
-  .modal-overlay.open { display: flex; }
-  .modal {
-    background: white;
-    border-radius: 12px;
-    width: 600px;
-    max-width: 95vw;
-    max-height: 85vh;
-    overflow-y: auto;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-  }
-  .modal-header {
-    padding: 16px 20px;
-    border-bottom: 1px solid #eee;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .modal-header h2 { font-size: 18px; color: #2c3e50; }
-  .modal-close {
-    background: none;
-    border: none;
-    font-size: 22px;
-    cursor: pointer;
-    color: #888;
-  }
-  .modal-body { padding: 16px 20px; }
-  .save-form { display: grid; gap: 12px; margin-bottom: 20px; }
-  .save-form input, .save-form textarea {
-    width: 100%;
-    padding: 9px 12px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 13px;
-  }
-  .save-form textarea { height: 60px; resize: vertical; }
-  .btn-save-plan {
-    padding: 9px 20px;
-    background: #27ae60;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .btn-save-plan:hover { background: #219a52; }
-  .plan-list { display: grid; gap: 10px; }
-  .plan-card {
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 12px 14px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .plan-card:hover { border-color: #3498db; background: #f0f8ff; }
-  .plan-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
-  .plan-card-name { font-weight: 700; font-size: 14px; }
-  .plan-card-date { font-size: 11px; color: #888; }
-  .plan-card-info { font-size: 12px; color: #666; }
-  .plan-card-del {
-    padding: 3px 8px;
-    background: #e74c3c;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 11px;
-    cursor: pointer;
-  }
-
-  /* 반응형 */
-  @media (max-width: 768px) {
-    .main-container { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-    .left-panel { max-height: 280px; }
-  }
-
-  .tooltip {
-    position: absolute;
-    background: rgba(0,0,0,0.8);
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    pointer-events: none;
-    z-index: 100;
-    white-space: nowrap;
-  }
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--paper:#ECEDEB;--sheet:#F8F8F6;--ink:#232529;--ink2:#5E6268;--rule:#CACCC9;--grid:#DEDFDC;--room:#FFFFFF;
+--accent:#1F5FD1;--accent-soft:rgba(31,95,209,.10);--warn:#C8372D;--warn-soft:rgba(200,55,45,.12);
+font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#16171A;--sheet:#1F2125;--ink:#E7E8E6;--ink2:#A3A7AC;--rule:#3A3D43;--grid:#2A2D32;--room:#24272C;--accent:#79A3F2;--accent-soft:rgba(121,163,242,.14);--warn:#F0776C;--warn-soft:rgba(240,119,108,.16)}}
+:root[data-theme="dark"]{--paper:#16171A;--sheet:#1F2125;--ink:#E7E8E6;--ink2:#A3A7AC;--rule:#3A3D43;--grid:#2A2D32;--room:#24272C;--accent:#79A3F2;--accent-soft:rgba(121,163,242,.14);--warn:#F0776C;--warn-soft:rgba(240,119,108,.16)}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font-size:14px;line-height:1.5}
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;padding:20px 24px 16px;border-bottom:1px solid var(--rule);background:var(--sheet)}
+h1{font-size:22px;font-weight:600;letter-spacing:-.015em;margin:0}
+.top p{margin:4px 0 0;color:var(--ink2);font-size:13.5px;max-width:70ch}
+.tools{display:flex;gap:8px}
+.app{display:grid;grid-template-columns:310px minmax(0,1fr)}
+.side{border-right:1px solid var(--rule);padding:4px 20px 28px;background:var(--sheet)}
+.side section{padding:16px 0 18px;border-bottom:1px solid var(--rule)}
+.side section:last-child{border-bottom:0}
+h2{font-size:14.5px;font-weight:600;margin:0 0 12px;display:flex;align-items:center;gap:9px}
+h3{font-size:13.5px;font-weight:600;margin:0 0 10px}
+.n{width:21px;height:21px;border:1.5px solid var(--ink);border-radius:50%;display:inline-grid;place-items:center;font-size:11.5px;font-weight:600;flex:none}
+main{padding:16px 20px 28px;min-width:0}
+.views{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px}
+.pane{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.pane-h{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--rule);font-size:13px;font-weight:600}
+.pane-h span{font-weight:400;color:var(--ink2);font-size:12.5px}
+#plan{width:100%;height:500px;display:block;touch-action:none;background:var(--paper);user-select:none}
+#three{height:500px;touch-action:none;cursor:grab;background:var(--paper);position:relative}
+.below{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
+.card{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding:14px 16px}
+.muted{color:var(--ink2);font-size:13px}
+.btn{font:inherit;font-size:13px;padding:6px 11px;border:1px solid var(--rule);background:var(--sheet);color:var(--ink);border-radius:5px;cursor:pointer;line-height:1.3}
+.btn:hover{border-color:var(--ink2)}
+.btn.primary{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+.btn.danger{color:var(--warn)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.field{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--ink2)}
+.field input{font:inherit;font-size:15px;color:var(--ink);background:var(--room);border:1px solid var(--rule);border-radius:5px;padding:7px 9px;width:100%}
+.row2{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end}
+.err{color:var(--warn);font-size:12.5px;margin-top:6px;min-height:0}
+.sw-label{font-size:12.5px;color:var(--ink2);margin:0 0 6px}
+.swatches{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.sw{display:flex;align-items:center;gap:6px;font:inherit;font-size:12.5px;padding:5px 9px 5px 6px;border:1px solid var(--rule);border-radius:20px;background:var(--sheet);color:var(--ink);cursor:pointer}
+.sw i{width:16px;height:16px;border-radius:50%;border:1px solid rgba(0,0,0,.25);display:block}
+.sw[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.cat{display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;padding:9px 0;border-top:1px dashed var(--rule)}
+.cat:first-of-type{border-top:0}
+.cat svg{width:34px;height:50px}
+.cat b{font-weight:600;font-size:13.5px}
+.cat small{display:block;color:var(--ink2);font-size:12px;margin-bottom:5px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{font:inherit;font-size:12px;padding:3px 9px;border:1px solid var(--rule);border-radius:4px;background:var(--room);color:var(--ink);cursor:pointer}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.check{display:flex;gap:7px;align-items:center;font-size:12.5px;color:var(--ink2);margin-top:10px}
+select{font:inherit;font-size:13px;color:var(--ink);background:var(--room);border:1px solid var(--rule);border-radius:5px;padding:6px 8px;width:100%;margin-bottom:8px}
+.wall{margin-bottom:12px}
+.wall:last-child{margin-bottom:0}
+.wall-t{display:flex;justify-content:space-between;font-size:13px}
+.strip{position:relative;height:7px;background:var(--grid);border-radius:2px;margin:5px 0 4px;overflow:hidden}
+.strip i{position:absolute;top:0;bottom:0;background:var(--ink2)}
+.parts{list-style:none;margin:0;padding:0}
+.parts li{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--rule);font-size:13px}
+.parts li:last-child{border-bottom:0}
+.pos{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.acts{display:flex;flex-wrap:wrap;gap:6px}
+.status{font-size:12.5px;margin-top:8px}
+.status.bad{color:var(--warn)}
+.status.ok{color:var(--ink2)}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--sheet);font-size:13px;padding:8px 14px;border-radius:5px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw}
+#toast.on{opacity:1}
+kbd{font:inherit;font-size:11.5px;border:1px solid var(--rule);border-bottom-width:2px;border-radius:3px;padding:0 4px}
+@media (max-width:1180px){.views{grid-template-columns:1fr}}
+@media (max-width:820px){.app{grid-template-columns:1fr}.side{border-right:0;border-bottom:1px solid var(--rule)}.below{grid-template-columns:1fr}#plan,#three{height:400px}.top{padding:16px}}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
 </style>
 </head>
 <body>
-
-<header>
+<header class="top">
   <div>
-    <h1>🏠 시스템행거장 배치 플래너</h1>
-    <span>방 사이즈에 맞춰 모듈을 배치하고 견적을 확인하세요</span>
+    <h1>드레스룸 배치 플래너</h1>
+    <p>방 크기를 넣고 모듈을 골라 벽에 붙여 보세요. 모듈 폭은 실제 치수(표기 폭 + 6mm), 깊이는 40cm로 계산해요.</p>
+  </div>
+  <div class="tools">
+    <button class="btn" id="undoBtn" title="Ctrl+Z">되돌리기</button>
+    <button class="btn danger" id="clearBtn">모두 지우기</button>
   </div>
 </header>
 
-<div class="main-container">
-  <!-- 좌측 패널 -->
-  <div class="left-panel">
-    <div class="section-title">📐 방 크기 설정</div>
-    <div class="room-settings">
-      <div class="input-row">
-        <div class="input-group">
-          <label>방 가로 (폭)</label>
-          <input type="number" id="room-width" value="300" min="100" max="2000" step="5">
-          <div class="input-unit">단위: cm</div>
-        </div>
-        <div class="input-group">
-          <label>방 세로 (깊이)</label>
-          <input type="number" id="room-depth" value="250" min="100" max="2000" step="5">
-          <div class="input-unit">단위: cm</div>
-        </div>
+<div class="app">
+  <aside class="side">
+    <section>
+      <h2><span class="n">1</span>방 크기</h2>
+      <div class="row2">
+        <label class="field">가로 (cm)<input id="roomW" type="number" inputmode="decimal" min="50" max="2000" step="0.1"></label>
+        <label class="field">세로 (cm)<input id="roomD" type="number" inputmode="decimal" min="50" max="2000" step="0.1"></label>
+        <button class="btn primary" id="roomApply">적용</button>
       </div>
-      <div class="input-row">
-        <div class="input-group">
-          <label>방 높이</label>
-          <input type="number" id="room-height" value="240" min="180" max="400" step="5">
-          <div class="input-unit">단위: cm</div>
-        </div>
-        <div class="input-group">
-          <label>벽 설치 위치</label>
-          <select id="wall-side" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
-            <option value="top">위쪽 벽</option>
-            <option value="bottom">아래쪽 벽</option>
-            <option value="left">왼쪽 벽</option>
-            <option value="right">오른쪽 벽</option>
-          </select>
-        </div>
-      </div>
-      <button class="btn-apply" onclick="applyRoomSettings()">방 크기 적용</button>
-    </div>
+      <div class="err" id="roomErr" role="alert"></div>
+    </section>
 
-    <div class="section-title">🛒 모듈 카탈로그</div>
-    <div class="module-catalog" id="module-catalog"></div>
-  </div>
+    <section>
+      <h2><span class="n">2</span>색상</h2>
+      <p class="sw-label">기둥</p>
+      <div class="swatches" id="pillarSw"></div>
+      <p class="sw-label">선반</p>
+      <div class="swatches" id="shelfSw" style="margin-bottom:0"></div>
+    </section>
 
-  <!-- 우측 패널 -->
-  <div class="right-panel">
-    <div class="canvas-toolbar">
-      <div class="toolbar-group">
-        <span class="toolbar-label">도구:</span>
-        <button class="btn-toolbar" onclick="setTool('select')" id="tool-select">⬆️ 선택/이동</button>
-        <button class="btn-toolbar" onclick="setTool('delete')" id="tool-delete">🗑️ 삭제</button>
-      </div>
-      <div class="toolbar-group">
-        <button class="btn-toolbar" onclick="clearAll()" style="color:#e74c3c;">🗑️ 전체 삭제</button>
-        <button class="btn-toolbar" onclick="openSaveModal()">💾 저장/불러오기</button>
-        <button class="btn-toolbar primary" onclick="printEstimate()">🖨️ 견적서 출력</button>
-      </div>
-      <div class="scale-info" id="scale-info">1cm = 2px</div>
-    </div>
+    <section>
+      <h2><span class="n">3</span>모듈 추가</h2>
+      <div id="catalog"></div>
+      <label class="check"><input type="checkbox" id="autoRot" checked> 벽 가까이 끌면 벽을 등지도록 자동 회전</label>
+    </section>
 
-    <div class="canvas-area" id="canvas-area">
-      <div id="room-canvas-wrap">
-        <canvas id="room-canvas"></canvas>
+    <section>
+      <h3>세트로 시작하기</h3>
+      <select id="setSel" aria-label="세트 선택"></select>
+      <button class="btn" id="setBtn" style="width:100%">세트로 배치</button>
+      <p class="muted" style="margin:6px 0 0;font-size:12px">현재 배치를 세트로 바꿔요. 위쪽 벽 기준으로 놓이고, 코너 세트는 왼쪽 벽까지 이어져요.</p>
+    </section>
+  </aside>
+
+  <main>
+    <div class="views">
+      <div class="pane">
+        <div class="pane-h">평면도<span>끌어서 이동, <kbd>R</kbd> 회전, <kbd>Del</kbd> 삭제</span></div>
+        <svg id="plan" role="img" aria-label="방 평면도와 배치된 모듈"><g id="planG"></g></svg>
+      </div>
+      <div class="pane">
+        <div class="pane-h">3D 미리보기<span style="display:flex;gap:8px;align-items:center">모듈은 3D에서도 끌 수 있어요 <button class="btn" id="camReset" style="padding:3px 9px;font-size:12px">시점 초기화</button></span></div>
+        <div id="three"></div>
       </div>
     </div>
-
-    <div class="placed-panel">
-      <div class="placed-header">
-        <span>📦 배치된 모듈 목록</span>
-        <span id="placed-count">0개 배치됨</span>
-      </div>
-      <div class="placed-list" id="placed-list"></div>
+    <div class="below">
+      <div class="card" id="selPanel"></div>
+      <div class="card"><h3>구성 목록</h3><div id="parts"></div></div>
     </div>
-
-    <div class="summary-bar">
-      <div class="summary-item">
-        <span class="summary-label">배치 수량</span>
-        <span class="summary-value" id="sum-count">0개</span>
-      </div>
-      <div class="summary-item">
-        <span class="summary-label">사용 폭</span>
-        <span class="summary-value" id="sum-width">0 cm</span>
-      </div>
-      <div class="summary-item">
-        <span class="summary-label">남은 공간</span>
-        <span class="summary-value" id="sum-remain">0 cm</span>
-      </div>
-      <div class="summary-item summary-total">
-        <span class="summary-label">총 견적 (VAT 별도)</span>
-        <span class="summary-value" id="sum-price">₩0</span>
-      </div>
-    </div>
-  </div>
+  </main>
 </div>
+<div id="toast" role="status" aria-live="polite"></div>
 
-<!-- 저장/불러오기 모달 -->
-<div class="modal-overlay" id="save-modal">
-  <div class="modal">
-    <div class="modal-header">
-      <h2>💾 플랜 저장 / 불러오기</h2>
-      <button class="modal-close" onclick="closeSaveModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="save-form">
-        <input type="text" id="plan-name" placeholder="플랜 이름 (예: 홍길동님 안방 플랜)">
-        <input type="text" id="plan-customer" placeholder="고객명 / 연락처">
-        <textarea id="plan-memo" placeholder="메모 (요청사항 등)"></textarea>
-        <button class="btn-save-plan" onclick="savePlan()">💾 현재 플랜 저장</button>
-      </div>
-      <div class="section-title" style="margin-bottom:12px;">📋 저장된 플랜 목록</div>
-      <div class="plan-list" id="plan-list"></div>
-    </div>
-  </div>
-</div>
-
-<div class="tooltip" id="tooltip" style="display:none;"></div>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-// Firebase 초기화
-const firebaseConfig = {"apiKey":"AIzaSyAA9XxN-Pw0vbLT0f8-mI2bV0FgEx18iIU","authDomain":"appbuilder-4e83c.firebaseapp.com","projectId":"appbuilder-4e83c","storageBucket":"appbuilder-4e83c.firebasestorage.app","messagingSenderId":"1038242551917","appId":"1:1038242551917:web:4d59995638762401dd0764"};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
-// ===================== 모듈 데이터 =====================
-const MODULE_CATEGORIES = [
-  {
-    name: '🏗️ 기본 프레임',
-    items: [
-      { id: 'frame-60', name: '기본 프레임 600', w: 60, h: 200, d: 45, price: 89000, color: '#8B9DC3', icon: '🔲', desc: '폭60cm 기본 프레임' },
-      { id: 'frame-90', name: '기본 프레임 900', w: 90, h: 200, d: 45, price: 119000, color: '#8B9DC3', icon: '🔲', desc: '폭90cm 기본 프레임' },
-      { id: 'frame-120', name: '기본 프레임 1200', w: 120, h: 200, d: 45, price: 149000, color: '#8B9DC3', icon: '🔲', desc: '폭120cm 기본 프레임' },
-    ]
-  },
-  {
-    name: '👔 행거봉',
-    items: [
-      { id: 'hanger-short', name: '단봉 행거 600', w: 60, h: 60, d: 45, price: 39000, color: '#E8A87C', icon: '👔', desc: '짧은 옷 걸이 (단봉)' },
-      { id: 'hanger-long', name: '장봉 행거 900', w: 90, h: 120, d: 45, price: 55000, color: '#E8A87C', icon: '👗', desc: '긴 옷 걸이 (장봉)' },
-      { id: 'hanger-double', name: '2단 행거 600', w: 60, h: 120, d: 45, price: 69000, color: '#D4956A', icon: '👕', desc: '2단 행거봉' },
-    ]
-  },
-  {
-    name: '🗄️ 서랍/수납장',
-    items: [
-      { id: 'drawer-3', name: '3단 서랍장', w: 60, h: 60, d: 45, price: 129000, color: '#82C0CC', icon: '🗄️', desc: '3단 서랍 모듈' },
-      { id: 'drawer-5', name: '5단 서랍장', w: 60, h: 100, d: 45, price: 189000, color: '#82C0CC', icon: '🗃️', desc: '5단 서랍 모듈' },
-      { id: 'cabinet-full', name: '전체 수납장', w: 60, h: 200, d: 45, price: 249000, color: '#6BA3BE', icon: '🚪', desc: '도어형 수납장' },
-    ]
-  },
-  {
-    name: '📚 선반',
-    items: [
-      { id: 'shelf-1', name: '1단 선반 600', w: 60, h: 20, d: 30, price: 29000, color: '#A8D5A2', icon: '📚', desc: '선반 1단 (폭60)' },
-      { id: 'shelf-1-90', name: '1단 선반 900', w: 90, h: 20, d: 30, price: 39000, color: '#A8D5A2', icon: '📚', desc: '선반 1단 (폭90)' },
-      { id: 'shelf-shoe', name: '신발 선반 900', w: 90, h: 80, d: 30, price: 79000, color: '#C8E6C9', icon: '👟', desc: '신발 수납 선반' },
-    ]
-  },
-  {
-    name: '🪞 거울/액세서리',
-    items: [
-      { id: 'mirror-full', name: '전신 거울', w: 45, h: 180, d: 5, price: 89000, color: '#B0BEC5', icon: '🪞', desc: '전신 거울 패널' },
-      { id: 'hook-panel', name: '후크 패널', w: 30, h: 60, d: 5, price: 35000, color: '#FFCC80', icon: '🔗', desc: '액세서리 후크 패널' },
-      { id: 'led-bar', name: 'LED 조명 600', w: 60, h: 5, d: 5, price: 45000, color: '#FFF9C4', icon: '💡', desc: 'LED 조명바' },
-    ]
-  },
-  {
-    name: '👞 신발장',
-    items: [
-      { id: 'shoe-4', name: '4단 신발장', w: 60, h: 80, d: 30, price: 99000, color: '#FFAB91', icon: '👞', desc: '4단 신발 수납' },
-      { id: 'shoe-rack-full', name: '신발장 전체', w: 90, h: 180, d: 30, price: 199000, color: '#FF8A65', icon: '👠', desc: '대용량 신발장' },
-    ]
-  },
+(function(){
+const DEPTH=400, EXTRA=6, CORNER=600, MOD_H=2000, WALL_H=2400, KEY='dressroom-planner-v1';
+const PILLAR={black:{name:'블랙',hex:'#2B2C2F'},white:{name:'화이트',hex:'#EFEFEC'}};
+const SHELF={oak:{name:'라이트오크',hex:'#D5B68C'},white:{name:'화이트',hex:'#F2F0EB'},beige:{name:'웜베이지',hex:'#E4D3BC'},pink:{name:'베이비핑크',hex:'#F1D2D4'}};
+const TYPES={
+  hang2:{name:'2단행거장',widths:[800,1000,1200],desc:'위·아래 행거봉 + 중간 선반'},
+  hang1:{name:'1단행거장',widths:[800,1000,1200],desc:'긴 옷 행거봉 + 하부 선반'},
+  hangShelf:{name:'행거선반장',widths:[800,1000],desc:'행거봉 + 선반 2칸'},
+  drawer3:{name:'3단서랍장',widths:[800],desc:'서랍 3단 + 상부 행거봉'},
+  shelf5:{name:'5단선반장',widths:[400,800],desc:'오픈 선반 5단'},
+  mirror:{name:'선반거울장',widths:[800],desc:'전신거울 + 선반'},
+  corner:{name:'코너장',widths:[0],desc:'L자 선반, 앞쪽 오목한 곡선'}
+};
+const HANGERS=['hang2','hang1','hangShelf','drawer3'];
+const SETS=[
+  {g:'160cm',k:'A',top:[['hang1',800],['hang2',800]]},
+  {g:'160cm',k:'B',top:[['drawer3',800],['hang2',800]]},
+  {g:'160cm',k:'C',top:[['drawer3',800],['hang1',800]]},
+  {g:'160cm',k:'D',top:[['hang2',800],['mirror',800]]},
+  {g:'200cm',k:'E',top:[['hang2',1200],['hang1',800]]},
+  {g:'200cm',k:'F',top:[['hang2',1200],['drawer3',800]]},
+  {g:'200cm',k:'G',top:[['hang2',1200],['mirror',800]]},
+  {g:'200cm',k:'H',top:[['hang2',1200],['hang2',800]]},
+  {g:'224cm',k:'I',top:[['corner',0],['hang1',800],['hang2',800]]},
+  {g:'224cm',k:'J',top:[['corner',0],['drawer3',800],['hang2',800]]},
+  {g:'224cm',k:'K',top:[['mirror',800],['hang2',800],['corner',0]]},
+  {g:'224cm',k:'L',top:[['hang2',800],['hang2',800],['corner',0]]},
+  {g:'240cm',k:'M',top:[['hang1',800],['hang2',800],['drawer3',800]]},
+  {g:'240cm',k:'N',top:[['mirror',800],['hang2',800],['hang1',800]]},
+  {g:'240cm',k:'O',top:[['shelf5',800],['drawer3',800],['hang1',800]]},
+  {g:'240cm',k:'P',top:[['hang2',1200],['hang1',1200]]},
+  {g:'320cm',k:'Q',top:[['shelf5',800],['drawer3',800],['hang1',800],['hang2',800]]},
+  {g:'320cm',k:'R',top:[['hang1',800],['drawer3',800],['mirror',800],['hang2',800]]},
+  {g:'코너 L자',k:'coner 01',top:[['corner',0],['hang1',800],['hang2',800]],left:[['hang2',1200]]},
+  {g:'코너 L자',k:'coner 02',top:[['corner',0],['hang1',800],['hang2',800]],left:[['mirror',800]]},
+  {g:'코너 L자',k:'coner 03',top:[['corner',0],['drawer3',800],['hang2',800]],left:[['hang1',1200]]},
+  {g:'코너 L자',k:'coner 04',top:[['corner',0],['hang1',800],['mirror',800]],left:[['hang2',800]]}
 ];
+const modLen=([t,w])=>t==='corner'?CORNER:w+EXTRA;
+const setLabel=st=>{const n=([t,w])=>t==='corner'?'코너장':`${w} ${TYPES[t].name}`;const tl=st.top.reduce((a,m)=>a+modLen(m),0);
+  let x=`SET ${st.k}: ${st.top.map(n).join(' + ')}`;if(st.left){const ll=CORNER+st.left.reduce((a,m)=>a+modLen(m),0);x+=` / 옆벽 ${st.left.map(n).join(' + ')} (${fmt(tl)} × ${fmt(ll)}cm)`}else x+=` (${fmt(tl)}cm)`;return x};
 
-// ===================== 앱 상태 =====================
-let roomW = 300, roomD = 250, roomH = 240;
-let scale = 2; // 1cm = 2px
-let placedModules = [];
-let selectedId = null;
-let tool = 'select';
-let dragging = false;
-let dragOffX = 0, dragOffY = 0;
-let dragTarget = null;
-let canvasW, canvasH;
-let wallSide = 'top';
-let idCounter = 1;
+let S={room:{w:3000,d:2400},pillar:'black',shelf:'oak',autoRot:true,items:[]};
+let sel=null,nextId=1,hist=[],drag=null,guides=null;
 
-const canvas = document.getElementById('room-canvas');
-const ctx = canvas.getContext('2d');
+const $=id=>document.getElementById(id);
+const get=id=>S.items.find(i=>i.id===id);
+const fmt=mm=>{const v=Math.round(mm)/10;return (Math.round(v*10)/10).toLocaleString('ko-KR',{maximumFractionDigits:1})};
+const nameOf=it=>it.type==='corner'?'코너장':`${it.w} ${TYPES[it.type].name}`;
+function fp(it){if(it.type==='corner')return{w:CORNER,h:CORNER};const W=it.w+EXTRA;return it.rot%180===0?{w:W,h:DEPTH}:{w:DEPTH,h:W}}
 
-// ===================== 카탈로그 렌더 =====================
-function renderCatalog() {
-  const wrap = document.getElementById('module-catalog');
-  wrap.innerHTML = '';
-  MODULE_CATEGORIES.forEach((cat, ci) => {
-    const block = document.createElement('div');
-    block.className = 'category-block';
-    const header = document.createElement('div');
-    header.className = 'category-header';
-    header.innerHTML = `<span>${cat.name}</span><span class="arrow">▼</span>`;
-    header.onclick = () => {
-      const list = block.querySelector('.module-list');
-      list.classList.toggle('open');
-      header.classList.toggle('collapsed');
-    };
-    const list = document.createElement('div');
-    list.className = 'module-list open';
-    cat.items.forEach(mod => {
-      const card = document.createElement('div');
-      card.className = 'module-card';
-      card.innerHTML = `
-        <div class="module-icon" style="background:${mod.color}22;border:1px solid ${mod.color}88;">${mod.icon}</div>
-        <div class="module-info">
-          <div class="module-name">${mod.name}</div>
-          <div class="module-size">폭${mod.w}×높이${mod.h}×깊이${mod.d}cm</div>
-          <div class="module-price">₩${mod.price.toLocaleString()}</div>
-        </div>
-        <button class="btn-add-module" onclick="addModule('${mod.id}')">+ 추가</button>
-      `;
-      list.appendChild(card);
-    });
-    block.appendChild(header);
-    block.appendChild(list);
-    wrap.appendChild(block);
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&s.room&&Array.isArray(s.items)){S=Object.assign(S,s);nextId=S.items.reduce((m,i)=>Math.max(m,i.id),0)+1}}catch(e){}}
+function snapshot(){hist.push(JSON.stringify(S));if(hist.length>80)hist.shift()}
+function undo(){if(!hist.length){toast('되돌릴 작업이 없어요');return}S=JSON.parse(hist.pop());if(sel&&!get(sel))sel=null;syncInputs();applyColors();buildRoom();refreshAll()}
+let tt;function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),2800)}
+
+function hits(a,b){const fa=fp(a),fb=fp(b);return a.x<b.x+fb.w-1&&a.x+fa.w>b.x+1&&a.y<b.y+fb.h-1&&a.y+fa.h>b.y+1}
+function outside(a){const f=fp(a);return a.x<-1||a.y<-1||a.x+f.w>S.room.w+1||a.y+f.h>S.room.d+1}
+function bad(a){return outside(a)||S.items.some(o=>o!==a&&hits(a,o))}
+function clampIn(it){const f=fp(it);if(f.w<=S.room.w)it.x=Math.min(Math.max(it.x,0),S.room.w-f.w);if(f.h<=S.room.d)it.y=Math.min(Math.max(it.y,0),S.room.d-f.h)}
+
+function findSpot(it){
+  const RW=S.room.w,RD=S.room.d;
+  if(it.type==='corner'){
+    for(const r of [0,90,180,270]){it.rot=r;const f=fp(it);it.x=(r===90||r===180)?RW-f.w:0;it.y=(r===180||r===270)?RD-f.h:0;if(!bad(it))return true}
+    it.rot=0;it.x=0;it.y=0;return false;
+  }
+  for(const r of [0,270,90,180]){
+    it.rot=r;const f=fp(it);const along=r%180===0?RW-f.w:RD-f.h;
+    const c=[0];S.items.forEach(o=>{const of=fp(o);c.push(r%180===0?o.x+of.w:o.y+of.h)});c.sort((a,b)=>a-b);
+    for(const v of c){if(v>along+0.5)continue;
+      if(r===0){it.x=v;it.y=0}else if(r===180){it.x=v;it.y=RD-f.h}else if(r===270){it.x=0;it.y=v}else{it.x=RW-f.w;it.y=v}
+      if(!bad(it))return true}
+  }
+  it.rot=0;const f=fp(it);it.x=Math.max(0,Math.round((RW-f.w)/2));it.y=Math.max(0,Math.round((RD-f.h)/2));return false;
+}
+function addModule(type,w){
+  snapshot();const it={id:nextId++,type,w,rot:0,x:0,y:0};const ok=findSpot(it);S.items.push(it);sel=it.id;refreshAll();
+  toast(ok?`추가했어요: ${nameOf(it)}`:'빈 벽 공간이 없어 방 가운데에 놓았어요. 끌어서 옮겨 주세요.');
+}
+function placeSet(idx){
+  const st=SETS[idx];if(!st)return;snapshot();
+  const had=S.items.length;S.items=[];const add=(type,w,rot,x,y)=>{const it={id:nextId++,type,w,rot,x,y};S.items.push(it);return it};
+  const topLen=st.top.reduce((a,m)=>a+modLen(m),0),cornerEnd=st.top[st.top.length-1][0]==='corner';
+  let x=cornerEnd?Math.max(0,S.room.w-topLen):0,last;
+  st.top.forEach(([t,w],i)=>{const rot=t==='corner'?(i===0?0:90):0;last=add(t,w,rot,x,0);x+=modLen([t,w])});
+  let leftLen=0;
+  if(st.left){let y=CORNER;st.left.forEach(([t,w])=>{last=add(t,w,270,0,y);y+=modLen([t,w])});leftLen=y}
+  sel=last.id;refreshAll();
+  const msgs=[];if(topLen>S.room.w)msgs.push(`위쪽 벽이 ${fmt(topLen-S.room.w)}cm 부족해요`);if(leftLen>S.room.d)msgs.push(`왼쪽 벽이 ${fmt(leftLen-S.room.d)}cm 부족해요`);
+  toast(`SET ${st.k}로 배치했어요. `+(msgs.length?msgs.join(', ')+'.':'방에 잘 들어가요.')+(had?' 이전 배치는 되돌리기로 복구할 수 있어요.':''));
+}
+function rotateSel(){const it=get(sel);if(!it)return;snapshot();const f0=fp(it),cx=it.x+f0.w/2,cy=it.y+f0.h/2;it.rot=(it.rot+90)%360;const f=fp(it);it.x=Math.round(cx-f.w/2);it.y=Math.round(cy-f.h/2);clampIn(it);refreshAll()}
+function deleteSel(){const it=get(sel);if(!it)return;snapshot();S.items=S.items.filter(i=>i!==it);sel=null;refreshAll();toast(`삭제했어요: ${nameOf(it)}`)}
+function dupSel(){const it=get(sel);if(!it)return;snapshot();const c={...it,id:nextId++};if(!findSpot(c)){c.rot=it.rot;c.x=it.x+100;c.y=it.y+100;clampIn(c)}S.items.push(c);sel=c.id;refreshAll();toast(`복제했어요: ${nameOf(c)}`)}
+
+function snapPos(it,x,y,thr){
+  const f=fp(it),RW=S.room.w,RD=S.room.d;let bx=null,by=null,dx=thr,dy=thr;
+  const tx=(v,line)=>{const d=Math.abs(v-x);if(d<dx){dx=d;bx={v,line}}};
+  const ty=(v,line)=>{const d=Math.abs(v-y);if(d<dy){dy=d;by={v,line}}};
+  tx(0,0);tx(RW-f.w,RW);ty(0,0);ty(RD-f.h,RD);
+  S.items.forEach(o=>{if(o.id===it.id)return;const of=fp(o);
+    const near=x<o.x+of.w+thr&&x+f.w>o.x-thr&&y<o.y+of.h+thr&&y+f.h>o.y-thr;if(!near)return;
+    tx(o.x+of.w,o.x+of.w);tx(o.x-f.w,o.x);tx(o.x,o.x);tx(o.x+of.w-f.w,o.x+of.w);
+    ty(o.y+of.h,o.y+of.h);ty(o.y-f.h,o.y);ty(o.y,o.y);ty(o.y+of.h-f.h,o.y+of.h);
   });
+  let nx=bx?bx.v:x,ny=by?by.v:y;
+  if(f.w<=RW)nx=Math.min(Math.max(nx,0),RW-f.w);if(f.h<=RD)ny=Math.min(Math.max(ny,0),RD-f.h);
+  guides={x:bx?bx.line:null,y:by?by.line:null};
+  return{x:nx,y:ny};
 }
-
-function findModuleById(id) {
-  for (const cat of MODULE_CATEGORIES) {
-    const found = cat.items.find(i => i.id === id);
-    if (found) return found;
-  }
-  return null;
+function wallDist(r,px,py){return r===0?py:r===90?S.room.w-px:r===180?S.room.d-py:px}
+function autoRot(it,px,py){
+  if(it.type==='corner'){const L=px<S.room.w/2,T=py<S.room.d/2;return T?(L?0:90):(L?270:180)}
+  let best=it.rot,bd=Infinity;for(const r of [0,90,180,270]){const d=wallDist(r,px,py);if(d<bd){bd=d;best=r}}
+  if(bd>DEPTH+300)return it.rot;
+  if(best!==it.rot&&bd>wallDist(it.rot,px,py)-120)return it.rot;
+  return best;
 }
-
-// ===================== 방 설정 =====================
-function applyRoomSettings() {
-  roomW = parseInt(document.getElementById('room-width').value) || 300;
-  roomD = parseInt(document.getElementById('room-depth').value) || 250;
-  roomH = parseInt(document.getElementById('room-height').value) || 240;
-  wallSide = document.getElementById('wall-side').value;
-  calcScale();
-  drawRoom();
-  updateSummary();
+function startDrag(it,px,py,src){snapshot();const f=fp(it);drag={id:it.id,off:{x:it.x+f.w/2-px,y:it.y+f.h/2-py},moved:false,src}}
+function moveDrag(px,py,thr){
+  const it=get(drag.id);if(!it)return;
+  if(S.autoRot){const r=autoRot(it,px,py);if(r!==it.rot){it.rot=r;drag.off={x:0,y:0}}}
+  const f=fp(it);const p=snapPos(it,px+drag.off.x-f.w/2,py+drag.off.y-f.h/2,thr);
+  it.x=Math.round(p.x);it.y=Math.round(p.y);drag.moved=true;renderPlan();sync3D();
 }
+function endDrag(){if(!drag)return;if(!drag.moved)hist.pop();drag=null;guides=null;refreshAll()}
 
-function calcScale() {
-  const area = document.getElementById('canvas-area');
-  const aW = area.clientWidth - 60;
-  const aH = area.clientHeight - 60;
-  const sW = aW / roomW;
-  const sH = aH / roomD;
-  scale = Math.min(sW, sH, 3);
-  scale = Math.max(scale, 0.5);
-  document.getElementById('scale-info').textContent = `1cm = ${scale.toFixed(1)}px`;
-}
-
-// ===================== 모듈 추가 =====================
-function addModule(modId) {
-  const mod = findModuleById(modId);
-  if (!mod) return;
-  
-  // 기본 배치 위치 (벽 기준)
-  let px = 0, py = 0;
-  if (wallSide === 'top') { px = 10; py = 0; }
-  else if (wallSide === 'bottom') { px = 10; py = roomD - mod.d; }
-  else if (wallSide === 'left') { px = 0; py = 10; }
-  else if (wallSide === 'right') { px = roomW - mod.d; py = 10; }
-
-  const placed = {
-    uid: 'mod_' + (idCounter++),
-    modId: mod.id,
-    x: px,
-    y: py,
-    w: wallSide === 'left' || wallSide === 'right' ? mod.d : mod.w,
-    d: wallSide === 'left' || wallSide === 'right' ? mod.w : mod.d,
-    mod: mod,
-  };
-  placedModules.push(placed);
-  selectedId = placed.uid;
-  drawRoom();
-  updateSummary();
-  updatePlacedList();
-}
-
-// ===================== 캔버스 그리기 =====================
-function drawRoom() {
-  canvasW = Math.round(roomW * scale);
-  canvasH = Math.round(roomD * scale);
-  canvas.width = canvasW;
-  canvas.height = canvasH;
-  document.getElementById('room-canvas-wrap').style.width = canvasW + 'px';
-  document.getElementById('room-canvas-wrap').style.height = canvasH + 'px';
-
-  ctx.clearRect(0, 0, canvasW, canvasH);
-
-  // 방 바닥
-  ctx.fillStyle = '#fafafa';
-  ctx.fillRect(0, 0, canvasW, canvasH);
-
-  // 그리드
-  ctx.strokeStyle = '#e8e8e8';
-  ctx.lineWidth = 0.5;
-  const gridStep = 10 * scale; // 10cm 단위
-  for (let x = 0; x <= canvasW; x += gridStep) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvasH); ctx.stroke();
-  }
-  for (let y = 0; y <= canvasH; y += gridStep) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvasW, y); ctx.stroke();
-  }
-
-  // 50cm 단위 굵은 선
-  ctx.strokeStyle = '#d0d0d0';
-  ctx.lineWidth = 1;
-  const grid50 = 50 * scale;
-  for (let x = 0; x <= canvasW; x += grid50) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvasH); ctx.stroke();
-  }
-  for (let y = 0; y <= canvasH; y += grid50) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvasW, y); ctx.stroke();
-  }
-
-  // 벽 표시
-  ctx.fillStyle = '#5d7a8a';
-  const wallThick = 8;
-  if (wallSide === 'top') {
-    ctx.fillRect(0, 0, canvasW, wallThick);
-    ctx.fillStyle = '#a0c0d0';
-    ctx.fillRect(0, wallThick, canvasW, 3);
-  } else if (wallSide === 'bottom') {
-    ctx.fillRect(0, canvasH - wallThick, canvasW, wallThick);
-    ctx.fillStyle = '#a0c0d0';
-    ctx.fillRect(0, canvasH - wallThick - 3, canvasW, 3);
-  } else if (wallSide === 'left') {
-    ctx.fillRect(0, 0, wallThick, canvasH);
-    ctx.fillStyle = '#a0c0d0';
-    ctx.fillRect(wallThick, 0, 3, canvasH);
-  } else if (wallSide === 'right') {
-    ctx.fillRect(canvasW - wallThick, 0, wallThick, canvasH);
-    ctx.fillStyle = '#a0c0d0';
-    ctx.fillRect(canvasW - wallThick - 3, 0, 3, canvasH);
-  }
-
-  // 벽 라벨
-  ctx.fillStyle = 'white';
-  ctx.font = `bold ${Math.max(10, scale * 4)}px sans-serif`;
-  ctx.textAlign = 'center';
-  if (wallSide === 'top') ctx.fillText('▲ 벽', canvasW/2, 14);
-  else if (wallSide === 'bottom') ctx.fillText('▼ 벽', canvasW/2, canvasH - 2);
-
-  // 방 테두리
-  ctx.strokeStyle = '#2c3e50';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(1, 1, canvasW - 2, canvasH - 2);
-
-  // 치수 표시
-  ctx.strokeStyle = '#3498db';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([4, 3]);
-  // 상단 치수
-  ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(canvasW, -20); ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.fillStyle = '#3498db';
-  ctx.font = `bold 12px sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.fillText(`방 가로: ${roomW}cm`, canvasW/2, canvasH/2);
-
-  // 모듈 그리기
-  placedModules.forEach(pm => {
-    drawModule(pm);
+function wallInfo(){
+  const RW=S.room.w,RD=S.room.d;
+  const walls=[{k:'top',name:'위쪽 벽',len:RW},{k:'right',name:'오른쪽 벽',len:RD},{k:'bottom',name:'아래쪽 벽',len:RW},{k:'left',name:'왼쪽 벽',len:RD}];
+  walls.forEach(w=>{
+    const iv=[];S.items.forEach(it=>{const f=fp(it);let on=false,a,b;
+      if(w.k==='top'){on=it.y<=1;a=it.x;b=it.x+f.w}
+      else if(w.k==='bottom'){on=it.y+f.h>=RD-1;a=it.x;b=it.x+f.w}
+      else if(w.k==='left'){on=it.x<=1;a=it.y;b=it.y+f.h}
+      else{on=it.x+f.w>=RW-1;a=it.y;b=it.y+f.h}
+      if(on)iv.push([Math.max(0,a),Math.min(w.len,b)])});
+    iv.sort((p,q)=>p[0]-q[0]);const m=[];iv.forEach(v=>{if(m.length&&v[0]<=m[m.length-1][1]+0.5)m[m.length-1][1]=Math.max(m[m.length-1][1],v[1]);else m.push([...v])});
+    w.used=m;w.usedLen=m.reduce((s,v)=>s+Math.max(0,v[1]-v[0]),0);
+    const gaps=[];let c=0;m.forEach(v=>{if(v[0]-c>0.5)gaps.push([c,v[0]]);c=Math.max(c,v[1])});if(w.len-c>0.5)gaps.push([c,w.len]);
+    w.gaps=gaps;w.maxGap=gaps.reduce((s,g)=>Math.max(s,g[1]-g[0]),0);
   });
-
-  // 치수 텍스트
-  ctx.fillStyle = 'rgba(52,152,219,0.15)';
-  // 방 크기 중앙 표시 (모듈 없을 때)
-  if (placedModules.length === 0) {
-    ctx.fillStyle = '#3498db';
-    ctx.font = `bold ${Math.min(20, scale*8)}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.fillText(`${roomW} × ${roomD} cm`, canvasW/2, canvasH/2);
-    ctx.font = `${Math.min(13, scale*5)}px sans-serif`;
-    ctx.fillStyle = '#999';
-    ctx.fillText('왼쪽 카탈로그에서 모듈을 추가하세요', canvasW/2, canvasH/2 + 30);
-  }
+  return walls;
 }
 
-function drawModule(pm) {
-  const x = pm.x * scale;
-  const y = pm.y * scale;
-  const w = pm.w * scale;
-  const h = pm.d * scale;
-  const isSelected = pm.uid === selectedId;
-  const mod = pm.mod;
+/* ---------- plan (2D) ---------- */
+const svg=$('plan'),planG=$('planG');
+let mmpp=5;
+function toMM(e){const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const q=p.matrixTransform(svg.getScreenCTM().inverse());return{x:q.x,y:q.y}}
+function rotPt(u,v,k){for(let i=0;i<k;i++){const t=u;u=CORNER-v;v=t}return[u,v]}
+function cornerPts(){const pts=[[0,0],[CORNER,0],[CORNER,DEPTH]];const r=CORNER-DEPTH;for(let i=1;i<=12;i++){const a=Math.PI*1.5-i/12*Math.PI/2;pts.push([CORNER+r*Math.cos(a),CORNER+r*Math.sin(a)])}pts.push([0,CORNER]);return pts}
+function renderPlan(){
+  const RW=S.room.w,RD=S.room.d,T=100,M=Math.max(RW,RD)*0.08+320;
+  svg.setAttribute('viewBox',`${-M} ${-M} ${RW+2*M} ${RD+2*M}`);
+  const cw=svg.clientWidth||600,ch=svg.clientHeight||450;mmpp=Math.max((RW+2*M)/cw,(RD+2*M)/ch);
+  const px=n=>n*mmpp,fs=px(12);
+  let s='';
+  s+=`<rect x="${-T}" y="${-T}" width="${RW+2*T}" height="${RD+2*T}" fill="var(--ink)"/>`;
+  s+=`<rect x="0" y="0" width="${RW}" height="${RD}" fill="var(--room)"/>`;
+  const step=100/mmpp>7?100:500;
+  for(let x=step;x<RW;x+=step)s+=`<line x1="${x}" y1="0" x2="${x}" y2="${RD}" stroke="var(--grid)" stroke-width="${px(x%500===0?1:.6)}"/>`;
+  for(let y=step;y<RD;y+=step)s+=`<line x1="0" y1="${y}" x2="${RW}" y2="${y}" stroke="var(--grid)" stroke-width="${px(y%500===0?1:.6)}"/>`;
+  const dy=-T-px(22),dx=-T-px(22),tk=px(5);
+  s+=`<g stroke="var(--ink2)" stroke-width="${px(1)}"><line x1="0" y1="${dy}" x2="${RW}" y2="${dy}"/><line x1="${-tk}" y1="${dy+tk}" x2="${tk}" y2="${dy-tk}"/><line x1="${RW-tk}" y1="${dy+tk}" x2="${RW+tk}" y2="${dy-tk}"/>
+  <line x1="${dx}" y1="0" x2="${dx}" y2="${RD}"/><line x1="${dx-tk}" y1="${tk}" x2="${dx+tk}" y2="${-tk}"/><line x1="${dx-tk}" y1="${RD+tk}" x2="${dx+tk}" y2="${RD-tk}"/></g>`;
+  s+=`<text x="${RW/2}" y="${dy-px(6)}" text-anchor="middle" font-size="${fs}" fill="var(--ink2)" font-weight="500">가로 ${fmt(RW)} cm</text>`;
+  s+=`<text x="${dx-px(6)}" y="${RD/2}" text-anchor="middle" font-size="${fs}" fill="var(--ink2)" font-weight="500" transform="rotate(-90 ${dx-px(6)} ${RD/2})">세로 ${fmt(RD)} cm</text>`;
+  if(!S.items.length)s+=`<text x="${RW/2}" y="${RD/2}" text-anchor="middle" font-size="${fs*1.15}" fill="var(--ink2)">왼쪽 목록에서 모듈을 골라 추가해 보세요</text>`;
 
-  // 그림자
-  ctx.shadowColor = 'rgba(0,0,0,0.15)';
-  ctx.shadowBlur = isSelected ? 8 : 4;
-  ctx.shadowOffsetX = 2;
-  ctx.shadowOffsetY = 2;
+  const walls=wallInfo();const off=px(16);
+  walls.forEach(w=>{if(!w.used.length)return;w.gaps.forEach(([a,b])=>{const L=b-a;if(L<5)return;
+    let x1,y1,x2,y2,tx,ty,rot=0;
+    if(w.k==='top'){x1=a;x2=b;y1=y2=off;tx=(a+b)/2;ty=off+fs*1.15}
+    else if(w.k==='bottom'){x1=a;x2=b;y1=y2=RD-off;tx=(a+b)/2;ty=RD-off-fs*.45}
+    else if(w.k==='left'){y1=a;y2=b;x1=x2=off;tx=off+fs*1.15;ty=(a+b)/2;rot=-90}
+    else{y1=a;y2=b;x1=x2=RW-off;tx=RW-off-fs*.45;ty=(a+b)/2;rot=-90}
+    const k=px(4),vert=w.k==='left'||w.k==='right';
+    s+=`<g stroke="var(--accent)" stroke-width="${px(1.2)}"><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`+
+      (vert?`<line x1="${x1-k}" y1="${y1}" x2="${x1+k}" y2="${y1}"/><line x1="${x2-k}" y1="${y2}" x2="${x2+k}" y2="${y2}"/>`:`<line x1="${x1}" y1="${y1-k}" x2="${x1}" y2="${y1+k}"/><line x1="${x2}" y1="${y2-k}" x2="${x2}" y2="${y2+k}"/>`)+`</g>`;
+    if(L/mmpp>44)s+=`<text x="${tx}" y="${ty}" text-anchor="middle" font-size="${fs*.95}" fill="var(--accent)" font-weight="600" ${rot?`transform="rotate(${rot} ${tx} ${ty})"`:''}>${fmt(L)}</text>`;
+  })});
 
-  // 본체
-  ctx.fillStyle = mod.color + 'cc';
-  ctx.fillRect(x, y, w, h);
-  ctx.shadowColor = 'transparent';
-  ctx.shadowBlur = 0;
-  ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 0;
-
-  // 테두리
-  ctx.strokeStyle = isSelected ? '#e74c3c' : mod.color;
-  ctx.lineWidth = isSelected ? 2.5 : 1.5;
-  ctx.strokeRect(x, y, w, h);
-
-  // 패턴 (내부 디테일)
-  ctx.strokeStyle = mod.color + '66';
-  ctx.lineWidth = 0.5;
-  if (mod.id.startsWith('hanger')) {
-    // 행거봉 표시
-    const barY = y + h * 0.3;
-    ctx.beginPath(); ctx.moveTo(x + 4, barY); ctx.lineTo(x + w - 4, barY); ctx.stroke();
-    // 옷 아이콘들
-    for (let i = 0; i < Math.floor(pm.w / 15); i++) {
-      const hx = x + 10 + i * 15;
-      ctx.beginPath();
-      ctx.moveTo(hx, barY);
-      ctx.lineTo(hx - 5, barY + h*0.3);
-      ctx.lineTo(hx + 5, barY + h*0.3);
-      ctx.closePath();
-      ctx.stroke();
+  S.items.forEach(it=>{
+    const f=fp(it),isBad=bad(it),isSel=it.id===sel,fill=SHELF[S.shelf].hex,post=PILLAR[S.pillar].hex,edge=S.pillar==='white'?'#8E908C':'#2B2C2F';
+    const cx=it.x+f.w/2,cy=it.y+f.h/2,P=30;
+    s+=`<g data-id="${it.id}" style="cursor:grab">`;
+    let posts=[];
+    if(it.type==='corner'){
+      const k=it.rot/90,pts=cornerPts().map(([u,v])=>rotPt(u,v,k)).map(([u,v])=>[it.x+u,it.y+v]);
+      s+=`<path d="M${pts.map(p=>p.join(' ')).join(' L')} Z" fill="${fill}" stroke="${edge}" stroke-width="${px(1)}"/>`;
+      [[0,0,120,18],[0,0,18,120]].forEach(([u,v,w,h])=>{const a=rotPt(u,v,k),b=rotPt(u+w,v+h,k);s+=`<rect x="${it.x+Math.min(a[0],b[0])}" y="${it.y+Math.min(a[1],b[1])}" width="${Math.abs(b[0]-a[0])}" height="${Math.abs(b[1]-a[1])}" fill="${fill}" stroke="${edge}" stroke-width="${px(.8)}"/>`});
+      posts=[[CORNER-P,0],[CORNER-P,DEPTH-P],[0,CORNER-P],[DEPTH-P,CORNER-P]].map(([u,v])=>{const a=rotPt(u,v,k),b=rotPt(u+P,v+P,k);return[it.x+Math.min(a[0],b[0]),it.y+Math.min(a[1],b[1])]});
+    }else{
+      s+=`<rect x="${it.x}" y="${it.y}" width="${f.w}" height="${f.h}" fill="${fill}" stroke="${edge}" stroke-width="${px(1)}"/>`;
+      posts=[[it.x,it.y],[it.x+f.w-P,it.y],[it.x,it.y+f.h-P],[it.x+f.w-P,it.y+f.h-P]];
+      if(HANGERS.includes(it.type)){const hz=it.rot%180===0;s+=hz?`<line x1="${it.x+50}" y1="${cy}" x2="${it.x+f.w-50}" y2="${cy}" stroke="#8A8C88" stroke-width="${px(1.2)}" stroke-dasharray="${px(6)} ${px(3)}"/>`:`<line x1="${cx}" y1="${it.y+50}" x2="${cx}" y2="${it.y+f.h-50}" stroke="#8A8C88" stroke-width="${px(1.2)}" stroke-dasharray="${px(6)} ${px(3)}"/>`}
+      const v={0:[0,1],90:[-1,0],180:[0,-1],270:[1,0]}[it.rot],fx=cx+v[0]*DEPTH/2,fy=cy+v[1]*DEPTH/2,ax=fx-v[0]*10,ay=fy-v[1]*10,bx=fx-v[0]*48,by=fy-v[1]*48;
+      s+=`<path d="M${ax} ${ay} L${bx-v[1]*26} ${by+v[0]*26} L${bx+v[1]*26} ${by-v[0]*26}Z" fill="${edge}" opacity=".55"/>`;
     }
-  } else if (mod.id.startsWith('drawer') || mod.id.startsWith('cabinet')) {
-    // 서랍 라인
-    const drawers = mod.id.includes('5') ? 5 : mod.id.includes('3') ? 3 : 2;
-    for (let i = 1; i < drawers; i++) {
-      const ly = y + (h / drawers) * i;
-      ctx.beginPath(); ctx.moveTo(x + 4, ly); ctx.lineTo(x + w - 4, ly); ctx.stroke();
-    }
-    // 손잡이
-    for (let i = 0; i < drawers; i++) {
-      const handleY = y + (h / drawers) * i + h / drawers / 2;
-      ctx.fillStyle = mod.color;
-      ctx.fillRect(x + w/2 - 8, handleY - 2, 16, 4);
-    }
-  } else if (mod.id.startsWith('shelf')) {
-    // 선반 선
-    ctx.beginPath(); ctx.moveTo(x, y + h/2); ctx.lineTo(x + w, y + h/2); ctx.stroke();
+    posts.forEach(([x,y])=>s+=`<rect x="${x}" y="${y}" width="${P}" height="${P}" fill="${post}" stroke="${edge}" stroke-width="${px(.8)}"/>`);
+    if(isBad)s+=`<rect x="${it.x}" y="${it.y}" width="${f.w}" height="${f.h}" fill="var(--warn-soft)" stroke="var(--warn)" stroke-width="${px(2)}" stroke-dasharray="${px(5)} ${px(3)}"/>`;
+    if(isSel)s+=`<rect x="${it.x-px(3)}" y="${it.y-px(3)}" width="${f.w+px(6)}" height="${f.h+px(6)}" fill="none" stroke="var(--accent)" stroke-width="${px(2)}"/>`;
+    const vert=it.type!=='corner'&&f.h>f.w,long=Math.max(f.w,f.h);
+    const t1=it.type==='corner'?'코너장':TYPES[it.type].name,t2=it.type==='corner'?`${fmt(CORNER)}×${fmt(CORNER)}`:`${it.w} · ${fmt(it.w+EXTRA)}cm`;
+    const lfs=Math.min(fs,long/(t2.length*0.62+1),long/(t1.length*1.05+1));
+    const lx=it.type==='corner'?it.x+[DEPTH*.55,CORNER-DEPTH*.55,CORNER-DEPTH*.55,DEPTH*.55][it.rot/90]:cx,ly=it.type==='corner'?it.y+[DEPTH*.55,DEPTH*.55,CORNER-DEPTH*.55,CORNER-DEPTH*.55][it.rot/90]:cy;
+    s+=`<text x="${lx}" y="${ly}" text-anchor="middle" font-size="${lfs}" fill="#2A2B2E" style="pointer-events:none" ${vert?`transform="rotate(-90 ${lx} ${ly})"`:''}><tspan x="${lx}" dy="${-lfs*.15}" font-weight="600">${t1}</tspan><tspan x="${lx}" dy="${lfs*1.2}" font-size="${lfs*.88}">${t2}</tspan></text>`;
+    s+=`</g>`;
+  });
+  if(guides){
+    if(guides.x!=null)s+=`<line x1="${guides.x}" y1="${-T}" x2="${guides.x}" y2="${RD+T}" stroke="var(--accent)" stroke-width="${px(1.2)}" stroke-dasharray="${px(4)} ${px(3)}"/>`;
+    if(guides.y!=null)s+=`<line x1="${-T}" y1="${guides.y}" x2="${RW+T}" y2="${guides.y}" stroke="var(--accent)" stroke-width="${px(1.2)}" stroke-dasharray="${px(4)} ${px(3)}"/>`;
   }
-
-  // 선택 핸들
-  if (isSelected) {
-    ctx.fillStyle = '#e74c3c';
-    const hSize = 6;
-    [[0,0],[w,0],[0,h],[w,h],[w/2,0],[w/2,h],[0,h/2],[w,h/2]].forEach(([hx,hy]) => {
-      ctx.fillRect(x + hx - hSize/2, y + hy - hSize/2, hSize, hSize);
-    });
-  }
-
-  // 라벨
-  const fontSize = Math.max(9, Math.min(13, w/10));
-  ctx.fillStyle = '#333';
-  ctx.font = `bold ${fontSize}px sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  const labelText = mod.icon + ' ' + (pm.w) + 'cm';
-  if (w > 40 && h > 20) {
-    ctx.fillText(labelText, x + w/2, y + h/2);
-    if (h > 40) {
-      ctx.font = `${fontSize - 2}px sans-serif`;
-      ctx.fillStyle = '#555';
-      ctx.fillText(mod.name.length > 8 ? mod.name.substring(0,8)+'…' : mod.name, x + w/2, y + h/2 + fontSize + 2);
-    }
-  }
-  ctx.textBaseline = 'alphabetic';
+  planG.innerHTML=s;
 }
+svg.addEventListener('pointerdown',e=>{
+  const g=e.target.closest('[data-id]');const p=toMM(e);
+  if(g){const it=get(+g.dataset.id);if(!it)return;sel=it.id;startDrag(it,p.x,p.y,'plan');svg.setPointerCapture(e.pointerId);svg.style.cursor='grabbing'}
+  else sel=null;
+  refreshAll();
+});
+svg.addEventListener('pointermove',e=>{if(drag&&drag.src==='plan'){const p=toMM(e);moveDrag(p.x,p.y,14*mmpp)}});
+const endPlan=()=>{svg.style.cursor='';if(drag&&drag.src==='plan')endDrag()};
+svg.addEventListener('pointerup',endPlan);svg.addEventListener('pointercancel',endPlan);
 
-// ===================== 캔버스 이벤트 =====================
-function getMousePos(e) {
-  const rect = canvas.getBoundingClientRect();
-  const touch = e.touches ? e.touches[0] : e;
-  return {
-    x: (touch.clientX - rect.left),
-    y: (touch.clientY - rect.top)
-  };
+/* ---------- 3D ---------- */
+const box3=$('three');
+const R=new THREE.WebGLRenderer({antialias:true,alpha:true});R.setPixelRatio(Math.min(devicePixelRatio,2));box3.appendChild(R.domElement);
+const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(40,1,0.05,100);
+scene.add(new THREE.HemisphereLight(0xffffff,0x8d8a82,0.85));
+const sun=new THREE.DirectionalLight(0xffffff,0.55);sun.position.set(4,7,6);scene.add(sun);
+const L=c=>new THREE.MeshLambertMaterial({color:c});
+const MAT={frame:L(0x2b2c2f),shelf:L(0xd5b68c),chest:L(0xd5b68c),rod:L(0x9b9b9b),handle:L(0x6a6a6a),gap:L(0x55555a),
+  mirror:new THREE.MeshPhongMaterial({color:0xc6d7e0,shininess:120,specular:0xffffff})};
+function applyColors(){MAT.frame.color.set(PILLAR[S.pillar].hex);MAT.shelf.color.set(SHELF[S.shelf].hex);MAT.chest.color.set(SHELF[S.shelf].hex)}
+const H=MOD_H/1000,D=DEPTH/1000,P=0.03,t=0.02;
+function bx(g,w,h,d,x,y,z,m){const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);b.position.set(x,y,z);g.add(b);return b}
+function rodX(g,len,y){const r=new THREE.Mesh(new THREE.CylinderGeometry(0.013,0.013,len,14),MAT.rod);r.rotation.z=Math.PI/2;r.position.set(0,y,0);g.add(r)}
+function rodAB(g,a,b){const v=new THREE.Vector3().subVectors(b,a),r=new THREE.Mesh(new THREE.CylinderGeometry(0.013,0.013,v.length(),14),MAT.rod);r.position.copy(a).add(b).multiplyScalar(.5);r.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.normalize());g.add(r)}
+const RUNG=[0.10,0.62,1.05,1.92],RUNG5=[0.10,0.555,1.01,1.465,1.92],RT=0.018,PH=H;
+const sY=(i,r=RUNG)=>r[i]+RT/2+t/2;
+function ladder(g,x0,z0,x1,z1,ix,iz,rungs=RUNG){
+  bx(g,P,PH,P,x0,PH/2,z0,MAT.frame);bx(g,P,PH,P,x1,PH/2,z1,MAT.frame);
+  const len=Math.hypot(x1-x0,z1-z0),ang=Math.atan2(x1-x0,z1-z0),o=P/2+0.007;
+  rungs.forEach(y=>{const r=bx(g,0.014,RT,len,(x0+x1)/2+ix*o,y,(z0+z1)/2+iz*o,MAT.frame);r.rotation.y=ang});
 }
-
-function findModuleAt(x, y) {
-  for (let i = placedModules.length - 1; i >= 0; i--) {
-    const pm = placedModules[i];
-    const px = pm.x * scale, py = pm.y * scale;
-    const pw = pm.w * scale, ph = pm.d * scale;
-    if (x >= px && x <= px + pw && y >= py && y <= py + ph) {
-      return pm;
-    }
+const BP=0.08;
+function plate(g,W,y,down){bx(g,W-2*P-0.004,BP,t,0,down?y-t/2-BP/2:y+t/2+BP/2,-D/2+0.01+t/2,MAT.shelf)}
+function shelfR(g,W,i,r=RUNG){const y=sY(i,r);bx(g,W-2*P,t,D-0.02,0,y,0,MAT.shelf);plate(g,W,y,i===r.length-1)}
+function baseM(W,r=RUNG){const g=new THREE.Group();[-1,1].forEach(sx=>ladder(g,sx*(W/2-P/2),-D/2+P/2,sx*(W/2-P/2),D/2-P/2,-sx,0,r));shelfR(g,W,0,r);shelfR(g,W,r.length-1,r);return g}
+function chest(g,W){const y0=sY(0)+t/2,h=0.6;bx(g,W-2*P-0.004,h,D-0.04,0,y0+h/2,0,MAT.chest);
+  for(let i=1;i<3;i++)bx(g,W-2*P-0.01,0.006,0.004,0,y0+h*i/3,D/2-0.018,MAT.gap);
+  for(let i=0;i<3;i++)bx(g,0.16,0.012,0.012,0,y0+h*(i+.5)/3+0.07,D/2-0.012,MAT.handle)}
+function cornerShape(Se,Sz,Dd){const sh=new THREE.Shape();sh.moveTo(0,0);sh.lineTo(Se,0);sh.lineTo(Se,Dd);sh.absarc(Sz,Sz,Sz-Dd,-Math.PI/2,-Math.PI,true);sh.lineTo(0,Se);sh.lineTo(0,0);return new THREE.ExtrudeGeometry(sh,{depth:t,bevelEnabled:false})}
+function buildModule(it){
+  if(it.type==='corner'){
+    const g=new THREE.Group(),Sz=CORNER/1000,Dd=D,o=-Sz/2,LW=0.12;
+    const gIn=cornerShape(Sz-P,Sz,Dd);
+    [sY(0),sY(1),sY(3)].forEach((y,j)=>{const geo=gIn,top=j===2;
+      const m=new THREE.Mesh(geo,MAT.shelf);m.rotation.x=Math.PI/2;m.position.set(o,y+t/2,o);g.add(m);
+      const py=top?y-t/2-BP/2:y+t/2+BP/2,run=Sz-P-LW;
+      bx(g,run,BP,t,o+LW+run/2,py,o+t/2,MAT.shelf);bx(g,t,BP,run,o+t/2,py,o+LW+run/2,MAT.shelf)});
+    ladder(g,o+Sz-P/2,o+P/2,o+Sz-P/2,o+Dd-P/2,-1,0);ladder(g,o+P/2,o+Sz-P/2,o+Dd-P/2,o+Sz-P/2,0,-1);
+    const LH=sY(3)+t/2;bx(g,LW,LH,t,o+LW/2,LH/2,o+t/2,MAT.shelf);bx(g,t,LH,LW-t,o+t/2,LH/2,o+t+(LW-t)/2,MAT.shelf);
+    rodAB(g,new THREE.Vector3(o+Sz-P,RUNG[3]-0.08,o+Dd/2),new THREE.Vector3(o+Dd/2,RUNG[3]-0.08,o+Sz-P));
+    return g;
   }
-  return null;
+  const W=(it.w+EXTRA)/1000,five=it.type==='shelf5'||it.type==='mirror',g=baseM(W,five?RUNG5:RUNG),in_=W-2*P,TR=RUNG[3]-0.08;
+  switch(it.type){
+    case 'hang2':rodX(g,in_,TR);shelfR(g,W,2);rodX(g,in_,RUNG[2]-0.07);break;
+    case 'hang1':rodX(g,in_,TR);shelfR(g,W,1);break;
+    case 'hangShelf':rodX(g,in_,TR);shelfR(g,W,2);shelfR(g,W,1);break;
+    case 'drawer3':rodX(g,in_,TR);chest(g,W);break;
+    case 'shelf5':[1,2,3].forEach(i=>shelfR(g,W,i,RUNG5));break;
+    case 'mirror':{[1,2,3].forEach(i=>shelfR(g,W,i,RUNG5));const mw=W*0.4,mx=-W/2+P+mw/2+0.01;bx(g,mw,H-0.16,0.02,mx,H/2,D/2+0.012,MAT.frame);bx(g,mw-0.03,H-0.2,0.005,mx,H/2,D/2+0.024,MAT.mirror);break}
+  }
+  return g;
 }
+const itemsRoot=new THREE.Group();scene.add(itemsRoot);
+const meshes=new Map();let roomMesh=null,floorMesh=null;
+let dimGroup=null;
+function textSprite(txt,k){
+  const c=document.createElement('canvas'),x=c.getContext('2d'),f='600 44px "IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+  x.font=f;const w=Math.ceil(x.measureText(txt).width)+40;c.width=w;c.height=72;
+  x.font=f;x.fillStyle='rgba(255,255,255,0.92)';x.strokeStyle='#1F5FD1';x.lineWidth=3;
+  const r=12;x.beginPath();x.moveTo(r,2);x.lineTo(w-r,2);x.quadraticCurveTo(w-2,2,w-2,r);x.lineTo(w-2,70-r);x.quadraticCurveTo(w-2,70,w-r,70);x.lineTo(r,70);x.quadraticCurveTo(2,70,2,70-r);x.lineTo(2,r);x.quadraticCurveTo(2,2,r,2);x.fill();x.stroke();
+  x.fillStyle='#1F4FA8';x.textAlign='center';x.textBaseline='middle';x.fillText(txt,w/2,38);
+  const tex=new THREE.CanvasTexture(c);tex.minFilter=THREE.LinearFilter;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true}));
+  const h=0.16*k;sp.scale.set(h*w/72,h,1);sp.renderOrder=10;return sp;
+}
+function buildDims(){
+  if(dimGroup)scene.remove(dimGroup);dimGroup=new THREE.Group();
+  const RW=S.room.w/1000,RD=S.room.d/1000,k=Math.max(1,Math.max(RW,RD)/3),o=0.28*k,tk=0.07*k,y=0.01;
+  const mat=new THREE.LineBasicMaterial({color:0x1F5FD1,depthTest:false,transparent:true});
+  const seg=(a,b)=>{const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...a),new THREE.Vector3(...b)]),mat);l.renderOrder=9;dimGroup.add(l)};
+  const zf=RD+o;seg([0,y,zf],[RW,y,zf]);seg([0,y,zf-tk],[0,y,zf+tk]);seg([RW,y,zf-tk],[RW,y,zf+tk]);seg([0,y,RD],[0,y,zf+tk]);seg([RW,y,RD],[RW,y,zf+tk]);
+  const xl=-o;seg([xl,y,0],[xl,y,RD]);seg([xl-tk,y,0],[xl+tk,y,0]);seg([xl-tk,y,RD],[xl+tk,y,RD]);seg([0,y,0],[xl-tk,y,0]);seg([0,y,RD],[xl-tk,y,RD]);
+  const a=textSprite(`가로 ${fmt(S.room.w)} cm`,k);a.position.set(RW/2,0.12*k,zf);dimGroup.add(a);
+  const b=textSprite(`세로 ${fmt(S.room.d)} cm`,k);b.position.set(xl,0.12*k,RD/2);dimGroup.add(b);
+  scene.add(dimGroup);
+}
+function buildRoom(){
+  if(roomMesh){scene.remove(roomMesh);scene.remove(floorMesh)}
+  buildDims();
+  const RW=S.room.w/1000,RD=S.room.d/1000,WH=WALL_H/1000;
+  roomMesh=new THREE.Mesh(new THREE.BoxGeometry(RW,WH,RD),new THREE.MeshLambertMaterial({color:0xE6E4DF,side:THREE.BackSide}));roomMesh.position.set(RW/2,WH/2,RD/2);scene.add(roomMesh);
+  floorMesh=new THREE.Mesh(new THREE.PlaneGeometry(RW,RD),new THREE.MeshLambertMaterial({color:0xD3CFC6}));floorMesh.rotation.x=-Math.PI/2;floorMesh.position.set(RW/2,0.001,RD/2);scene.add(floorMesh);
+}
+function sync3D(){
+  const ids=new Set();
+  S.items.forEach(it=>{
+    ids.add(it.id);const key=`${it.type}-${it.w}`;let e=meshes.get(it.id);
+    if(!e||e.key!==key){if(e)itemsRoot.remove(e.g);const g=buildModule(it);g.userData.id=it.id;
+      const bw=it.type==='corner'?CORNER/1000:(it.w+EXTRA)/1000,bd=it.type==='corner'?CORNER/1000:D;
+      const ed=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(bw+0.01,H+0.01,bd+0.01)),new THREE.LineBasicMaterial({color:0x1F5FD1}));ed.position.y=H/2;g.add(ed);
+      itemsRoot.add(g);e={g,key,ed};meshes.set(it.id,e)}
+    const f=fp(it);e.g.position.set((it.x+f.w/2)/1000,0,(it.y+f.h/2)/1000);e.g.rotation.y=-it.rot*Math.PI/180;
+    const b=bad(it);e.ed.visible=b||it.id===sel;e.ed.material.color.set(b?0xC8372D:0x1F5FD1);
+  });
+  [...meshes.keys()].forEach(id=>{if(!ids.has(id)){itemsRoot.remove(meshes.get(id).g);meshes.delete(id)}});
+}
+let orb={th:0.35,ph:0.62,r:6},target=new THREE.Vector3();
+function resetCam(){const RW=S.room.w/1000,RD=S.room.d/1000;target.set(RW/2,0.9,RD/2);orb={th:0.35,ph:0.62,r:Math.max(RW,RD)*1.5+2.4}}
+function placeCam(){cam.position.set(target.x+orb.r*Math.sin(orb.th)*Math.cos(orb.ph),target.y+orb.r*Math.sin(orb.ph),target.z+orb.r*Math.cos(orb.th)*Math.cos(orb.ph));cam.lookAt(target)}
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),floorPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+function setNdc(e){const r=box3.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(ndc,cam)}
+function floorPt(){const v=new THREE.Vector3();return ray.ray.intersectPlane(floorPlane,v)?{x:v.x*1000,y:v.z*1000}:null}
+let orbit=null;
+box3.addEventListener('pointerdown',e=>{
+  setNdc(e);box3.setPointerCapture(e.pointerId);
+  const hit=ray.intersectObjects(itemsRoot.children,true).find(h=>h.object.type==='Mesh');
+  if(hit){let o=hit.object;while(o&&o.userData.id==null)o=o.parent;const it=o&&get(o.userData.id);const p=floorPt();
+    if(it&&p){sel=it.id;startDrag(it,p.x,p.y,'3d');box3.style.cursor='grabbing';refreshAll();return}}
+  orbit={x:e.clientX,y:e.clientY,moved:false};
+});
+box3.addEventListener('pointermove',e=>{
+  if(drag&&drag.src==='3d'){setNdc(e);const p=floorPt();if(p)moveDrag(p.x,p.y,110);return}
+  if(orbit){const dx=e.clientX-orbit.x,dy=e.clientY-orbit.y;if(Math.abs(dx)+Math.abs(dy)>2)orbit.moved=true;orb.th-=dx*0.008;orb.ph=Math.min(1.45,Math.max(0.08,orb.ph+dy*0.008));orbit.x=e.clientX;orbit.y=e.clientY}
+});
+const end3=()=>{box3.style.cursor='';if(drag&&drag.src==='3d'){endDrag();return}if(orbit&&!orbit.moved&&sel!==null){sel=null;refreshAll()}orbit=null};
+box3.addEventListener('pointerup',end3);box3.addEventListener('pointercancel',end3);
+box3.addEventListener('wheel',e=>{e.preventDefault();orb.r=Math.min(30,Math.max(1.5,orb.r*(1+e.deltaY*0.0012)))},{passive:false});
+function size3(){const w=box3.clientWidth,h=box3.clientHeight;if(!w||!h)return;R.setSize(w,h);cam.aspect=w/h;cam.updateProjectionMatrix()}
+new ResizeObserver(size3).observe(box3);
+new ResizeObserver(()=>renderPlan()).observe(svg);
+(function loop(){placeCam();R.render(scene,cam);requestAnimationFrame(loop)})();
 
-canvas.addEventListener('mousedown', (e) => {
-  const pos = getMousePos(e);
-  const pm = findModuleAt(pos.x, pos.y);
-  if (tool === 'delete') {
-    if (pm) {
-      placedModules = placedModules.filter(m => m.uid !== pm.uid);
-      selectedId = null;
-      drawRoom();
-      updateSummary();
-      updatePlacedList();
-    }
-    return;
-  }
-  if (pm) {
-    selectedId = pm.uid;
-    dragging = true;
-    dragTarget = pm;
-    dragOffX = pos.x - pm.x * scale;
-    dragOffY = pos.y - pm.y * scale;
-    drawRoom();
-    updatePlacedList();
-  } else {
-    selectedId = null;
-    drawRoom();
-    updatePlacedList();
-  }
+/* ---------- panels ---------- */
+const DIR={0:'위쪽 벽을 등지고 있어요',90:'오른쪽 벽을 등지고 있어요',180:'아래쪽 벽을 등지고 있어요',270:'왼쪽 벽을 등지고 있어요'};
+const CDIR={0:'왼쪽 위 모서리용',90:'오른쪽 위 모서리용',180:'오른쪽 아래 모서리용',270:'왼쪽 아래 모서리용'};
+function renderSel(){
+  const el=$('selPanel'),it=get(sel);
+  if(!it){el.innerHTML=`<h3>선택한 모듈</h3><p class="muted" style="margin:0">평면도나 3D에서 모듈을 누르면 위치를 cm 단위로 맞추고 회전하거나 복제할 수 있어요.</p>`;return}
+  const f=fp(it),b=bad(it);
+  const size=it.type==='corner'?`${fmt(CORNER)} × ${fmt(CORNER)} cm`:`폭 ${fmt(it.w+EXTRA)} × 깊이 ${fmt(DEPTH)} cm`;
+  el.innerHTML=`<h3>${nameOf(it)}</h3><p class="muted" style="margin:0">${size}, ${it.type==='corner'?CDIR[it.rot]:DIR[it.rot]}</p>
+  <div class="pos"><label class="field">왼쪽 벽에서 (cm)<input id="posX" type="number" step="0.1" value="${fmt(it.x).replace(/,/g,'')}"></label>
+  <label class="field">위쪽 벽에서 (cm)<input id="posY" type="number" step="0.1" value="${fmt(it.y).replace(/,/g,'')}"></label></div>
+  <div class="acts"><button class="btn" id="rotB">회전 <kbd>R</kbd></button><button class="btn" id="dupB">복제 <kbd>D</kbd></button><button class="btn danger" id="delB">삭제</button></div>
+  <div class="status ${b?'bad':'ok'}">${b?(outside(it)?'방 밖으로 나가 있어요. 안쪽으로 옮겨 주세요.':'다른 모듈과 겹쳐 있어요. 옆으로 옮겨 주세요.'):`오른쪽 벽까지 ${fmt(S.room.w-it.x-f.w)}cm, 아래쪽 벽까지 ${fmt(S.room.d-it.y-f.h)}cm`}</div>`;
+  $('rotB').onclick=rotateSel;$('dupB').onclick=dupSel;$('delB').onclick=deleteSel;
+  const onPos=(k,v)=>{const n=parseFloat(v);if(!isFinite(n))return;snapshot();it[k]=Math.round(n*10);refreshAll()};
+  $('posX').onchange=e=>onPos('x',e.target.value);$('posY').onchange=e=>onPos('y',e.target.value);
+}
+function renderParts(){
+  if(!S.items.length){$('parts').innerHTML='<p class="muted" style="margin:0">아직 배치한 모듈이 없어요.</p>';return}
+  const m=new Map();S.items.forEach(it=>{const k=nameOf(it);m.set(k,(m.get(k)||0)+1)});
+  const nb=S.items.filter(bad).length;
+  $('parts').innerHTML=`<ul class="parts">${[...m].map(([k,n])=>`<li><span>${k}</span><span>${n}개</span></li>`).join('')}</ul>
+  <p class="muted" style="margin:10px 0 0">모듈 ${S.items.length}개, 기둥 ${PILLAR[S.pillar].name}, 선반 ${SHELF[S.shelf].name}</p>
+  ${nb?`<p class="status bad" style="margin:4px 0 0">겹치거나 방 밖에 있는 모듈이 ${nb}개 있어요.</p>`:''}`;
+}
+function refreshAll(){renderPlan();sync3D();renderSel();renderParts();save()}
+
+/* ---------- controls ---------- */
+function syncInputs(){$('roomW').value=S.room.w/10;$('roomD').value=S.room.d/10;$('autoRot').checked=S.autoRot;renderSwatches()}
+function applyRoom(){
+  const w=parseFloat($('roomW').value),d=parseFloat($('roomD').value),err=$('roomErr');
+  if(!isFinite(w)||!isFinite(d)){err.textContent='가로와 세로를 모두 cm 단위 숫자로 입력해 주세요.';return}
+  if(w<50||d<50||w>2000||d>2000){err.textContent='50cm에서 2,000cm 사이로 입력해 주세요.';return}
+  err.textContent='';snapshot();S.room={w:Math.round(w*10),d:Math.round(d*10)};buildRoom();resetCam();refreshAll();
+  const nb=S.items.filter(outside).length;toast(nb?`방 크기를 바꿨어요. 방 밖으로 나간 모듈이 ${nb}개 있어요.`:`방 크기를 ${fmt(S.room.w)} × ${fmt(S.room.d)}cm로 맞췄어요`);
+}
+$('roomApply').onclick=applyRoom;['roomW','roomD'].forEach(id=>{$(id).addEventListener('keydown',e=>{if(e.key==='Enter')applyRoom()});$(id).addEventListener('input',()=>$('roomErr').textContent='')});
+function renderSwatches(){
+  $('pillarSw').innerHTML=Object.entries(PILLAR).map(([k,v])=>`<button class="sw" data-p="${k}" aria-pressed="${S.pillar===k}"><i style="background:${v.hex}"></i>${v.name}</button>`).join('');
+  $('shelfSw').innerHTML=Object.entries(SHELF).map(([k,v])=>`<button class="sw" data-s="${k}" aria-pressed="${S.shelf===k}"><i style="background:${v.hex}"></i>${v.name}</button>`).join('');
+}
+$('pillarSw').onclick=e=>{const b=e.target.closest('[data-p]');if(!b)return;S.pillar=b.dataset.p;renderSwatches();applyColors();refreshAll()};
+$('shelfSw').onclick=e=>{const b=e.target.closest('[data-s]');if(!b)return;S.shelf=b.dataset.s;renderSwatches();applyColors();refreshAll()};
+$('autoRot').onchange=e=>{S.autoRot=e.target.checked;save()};
+function elev(type){
+  const ln=(x1,y1,x2,y2,w=1.2,dash='')=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="currentColor" stroke-width="${w}" ${dash?`stroke-dasharray="${dash}"`:''}/>`;
+  const sh=y=>ln(4,y,30,y,2.2),rod=y=>ln(5,y,29,y,1,'2 1.5');
+  if(type==='corner')return `<svg viewBox="0 0 34 50" aria-hidden="true" style="color:var(--ink2)"><path d="M4 12 H30 V26 A10 10 0 0 0 20 36 H4 Z" fill="none" stroke="currentColor" stroke-width="1.4"/>${ln(4,12,30,12,2.4)}${ln(4,12,4,36,2.4)}</svg>`;
+  let s=ln(3,2,3,48,2.4)+ln(31,2,31,48,2.4)+sh(4)+sh(46);
+  if(type==='hang2')s+=rod(8)+sh(25)+rod(28);
+  if(type==='hang1')s+=rod(8)+sh(34);
+  if(type==='hangShelf')s+=rod(8)+sh(25)+sh(35);
+  if(type==='drawer3')s+=rod(8)+`<rect x="5" y="30" width="24" height="15" fill="none" stroke="currentColor" stroke-width="1"/>`+ln(5,35,29,35,.8)+ln(5,40,29,40,.8);
+  if(type==='shelf5')s+=sh(14.5)+sh(25)+sh(35.5);
+  if(type==='mirror')s+=sh(14.5)+sh(25)+sh(35.5)+`<rect x="5" y="6" width="10" height="38" fill="var(--sheet)" stroke="currentColor" stroke-width="1"/>`;
+  return `<svg viewBox="0 0 34 50" aria-hidden="true" style="color:var(--ink2)">${s}</svg>`;
+}
+$('catalog').innerHTML=Object.entries(TYPES).map(([k,t])=>`<div class="cat">${elev(k)}<div><b>${t.name}</b><small>${t.desc}</small><div class="chips">${
+  k==='corner'?`<button class="chip" data-t="corner" data-w="0" aria-label="코너장 추가">${fmt(CORNER)}×${fmt(CORNER)} 추가</button>`:t.widths.map(w=>`<button class="chip" data-t="${k}" data-w="${w}" aria-label="${w} ${t.name} 추가">${w}</button>`).join('')}</div></div></div>`).join('');
+$('catalog').onclick=e=>{const b=e.target.closest('[data-t]');if(b)addModule(b.dataset.t,+b.dataset.w)};
+$('setSel').innerHTML=[...new Set(SETS.map(x=>x.g))].map(g=>`<optgroup label="${g}">${SETS.map((x,i)=>x.g===g?`<option value="${i}">${setLabel(x)}</option>`:'').join('')}</optgroup>`).join('');
+$('setBtn').onclick=()=>placeSet(+$('setSel').value);
+$('undoBtn').onclick=undo;
+$('clearBtn').onclick=()=>{if(!S.items.length)return;snapshot();S.items=[];sel=null;refreshAll();toast('모두 지웠어요. 되돌리기로 복구할 수 있어요.')};
+$('camReset').onclick=resetCam;
+document.addEventListener('keydown',e=>{
+  if(e.target.matches('input,select,textarea'))return;
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();undo();return}
+  if(e.key==='Escape'){sel=null;refreshAll();return}
+  const it=get(sel);if(!it)return;
+  if(e.key==='r'||e.key==='R'){rotateSel();return}
+  if(e.key==='d'||e.key==='D'){dupSel();return}
+  if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();deleteSel();return}
+  const st=e.shiftKey?100:10,mv={ArrowLeft:[-st,0],ArrowRight:[st,0],ArrowUp:[0,-st],ArrowDown:[0,st]}[e.key];
+  if(mv){e.preventDefault();snapshot();it.x+=mv[0];it.y+=mv[1];refreshAll()}
 });
 
-canvas.addEventListener('mousemove', (e) => {
-  const pos = getMousePos(e);
-  if (dragging && dragTarget) {
-    let nx = (pos.x - dragOffX) / scale;
-    let ny = (pos.y - dragOffY) / scale;
-    // 스냅 5cm
-    nx = Math.round(nx / 5) * 5;
-    ny = Math.round(ny / 5) * 5;
-    // 경계 제한
-    nx = Math.max(0, Math.min(roomW - dragTarget.w, nx));
-    ny = Math.max(0, Math.min(roomD - dragTarget.d, ny));
-    dragTarget.x = nx;
-    dragTarget.y = ny;
-    drawRoom();
-    updateSummary();
-    updatePlacedList();
-    
-    // 툴팁
-    const tooltip = document.getElementById('tooltip');
-    tooltip.style.display = 'block';
-    tooltip.style.left = (e.clientX + 12) + 'px';
-    tooltip.style.top = (e.clientY - 20) + 'px';
-    tooltip.textContent = `X: ${nx}cm, Y: ${ny}cm`;
-  } else {
-    const hov = findModuleAt(pos.x, pos.y);
-    canvas.style.cursor = hov ? (tool === 'delete' ? 'not-allowed' : 'grab') : 'default';
-    document.getElementById('tooltip').style.display = 'none';
-  }
-});
-
-canvas.addEventListener('mouseup', () => {
-  dragging = false;
-  dragTarget = null;
-  canvas.style.cursor = 'default';
-  document.getElementById('tooltip').style.display = 'none';
-});
-
-canvas.addEventListener('mouseleave', () => {
-  dragging = false;
-  document.getElementById('tooltip').style.display = 'none';
-});
-
-// ===================== 도구 =====================
-function setTool(t) {
-  tool = t;
-  document.getElementById('tool-select').style.background = t === 'select' ? '#e8f4fd' : '';
-  document.getElementById('tool-select').style.borderColor = t === 'select' ? '#3498db' : '';
-  document.getElementById('tool-delete').style.background = t === 'delete' ? '#fff0f0' : '';
-  document.getElementById('tool-delete').style.borderColor = t === 'delete' ? '#e74c3c' : '';
-  canvas.style.cursor = t === 'delete' ? 'crosshair' : 'default';
-}
-
-function clearAll() {
-  if (placedModules.length === 0) return;
-  if (!confirm('배치된 모든 모듈을 삭제하시겠습니까?')) return;
-  placedModules = [];
-  selectedId = null;
-  drawRoom();
-  updateSummary();
-  updatePlacedList();
-}
-
-// ===================== 요약 =====================
-function updateSummary() {
-  const count = placedModules.length;
-  const totalPrice = placedModules.reduce((s, pm) => s + pm.mod.price, 0);
-  
-  // 선택된 벽 방향의 총 폭 계산
-  let usedWidth = 0;
-  if (wallSide === 'top' || wallSide === 'bottom') {
-    usedWidth = placedModules.reduce((s, pm) => s + pm.w, 0);
-  } else {
-    usedWidth = placedModules.reduce((s, pm) => s + pm.d, 0);
-  }
-  const wallWidth = (wallSide === 'top' || wallSide === 'bottom') ? roomW : roomD;
-  const remain = wallWidth - usedWidth;
-
-  document.getElementById('sum-count').textContent = count + '개';
-  document.getElementById('sum-width').textContent = usedWidth + ' cm';
-  document.getElementById('sum-remain').textContent = remain + ' cm';
-  document.getElementById('sum-price').textContent = '₩' + totalPrice.toLocaleString();
-  document.getElementById('placed-count').textContent = count + '개 배치됨';
-}
-
-function updatePlacedList() {
-  const list = document.getElementById('placed-list');
-  list.innerHTML = '';
-  if (placedModules.length === 0) {
-    list.innerHTML = '<div style="color:#aaa;font-size:12px;padding:4px;">배치된 모듈이 없습니다. 왼쪽에서 모듈을 추가하세요.</div>';
-    return;
-  }
-  placedModules.forEach((pm, i) => {
-    const item = document.createElement('div');
-    item.className = 'placed-item' + (pm.uid === selectedId ? ' selected' : '');
-    item.innerHTML = `
-      <div class="placed-item-dot" style="background:${pm.mod.color};"></div>
-      <span class="placed-item-name">${pm.mod.icon} ${pm.mod.name}</span>
-      <span class="placed-item-pos">(${pm.x},${pm.y})</span>
-      <span class="placed-item-del" onclick="removeModule('${pm.uid}',event)">✕</span>
-    `;
-    item.addEventListener('click', () => {
-      selectedId = pm.uid;
-      drawRoom();
-      updatePlacedList();
-    });
-    list.appendChild(item);
-  });
-}
-
-function removeModule(uid, e) {
-  e.stopPropagation();
-  placedModules = placedModules.filter(m => m.uid !== uid);
-  if (selectedId === uid) selectedId = null;
-  drawRoom();
-  updateSummary();
-  updatePlacedList();
-}
-
-// ===================== 저장/불러오기 =====================
-function openSaveModal() {
-  document.getElementById('save-modal').classList.add('open');
-  loadPlanList();
-}
-function closeSaveModal() {
-  document.getElementById('save-modal').classList.remove('open');
-}
-
-function savePlan() {
-  const name = document.getElementById('plan-name').value.trim();
-  const customer = document.getElementById('plan-customer').value.trim();
-  const memo = document.getElementById('plan-memo').value.trim();
-  if (!name) { alert('플랜 이름을 입력해주세요.'); return; }
-
-  const data = {
-    name, customer, memo,
-    roomW, roomD, roomH, wallSide,
-    modules: placedModules.map(pm => ({
-      modId: pm.modId,
-      x: pm.x,
-      y: pm.y,
-      w: pm.w,
-      d: pm.d,
-    })),
-    totalPrice: placedModules.reduce((s, pm) => s + pm.mod.price, 0),
-    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-  };
-
-  db.collection("apps/app-mugqkgel/items").add(data).then(() => {
-    alert('플랜이 저장되었습니다!');
-    document.getElementById('plan-name').value = '';
-    document.getElementById('plan-customer').value = '';
-    document.getElementById('plan-memo').value = '';
-    loadPlanList();
-  }).catch(err => {
-    alert('저장 실패: ' + err.message);
-  });
-}
-
-function loadPlanList() {
-  const list = document.getElementById('plan-list');
-  list.innerHTML = '<div style="color:#999;font-size:12px;">로딩 중...</div>';
-  
-  db.collection("apps/app-mugqkgel/items").orderBy('createdAt', 'desc').get().then(snap => {
-    list.innerHTML = '';
-    if (snap.empty) {
-      list.innerHTML = '<div style="color:#aaa;font-size:13px;">저장된 플랜이 없습니다.</div>';
-      return;
-    }
-    snap.forEach(doc => {
-      const d = doc.data();
-      const card = document.createElement('div');
-      card.className = 'plan-card';
-      const dateStr = d.createdAt ? new Date(d.createdAt.toDate()).toLocaleDateString('ko-KR') : '';
-      card.innerHTML = `
-        <div class="plan-card-header">
-          <div>
-            <div class="plan-card-name">${d.name}</div>
-            <div class="plan-card-date">${d.customer ? d.customer + ' | ' : ''}${dateStr}</div>
-          </div>
-          <button class="plan-card-del" onclick="deletePlan('${doc.id}',event)">삭제</button>
-        </div>
-        <div class="plan-card-info">
-          방: ${d.roomW}×${d.roomD}cm | 모듈: ${d.modules ? d.modules.length : 0}개 | 
-          견적: ₩${(d.totalPrice||0).toLocaleString()}
-          ${d.memo ? '<br>메모: ' + d.memo : ''}
-        </div>
-      `;
-      card.querySelector('.plan-card-header > div').addEventListener('click', () => loadPlan(d));
-      list.appendChild(card);
-    });
-  }).catch(err => {
-    list.innerHTML = '<div style="color:#e74c3c;font-size:12px;">불러오기 실패: ' + err.message + '</div>';
-  });
-}
-
-function loadPlan(d) {
-  if (!confirm(`"${d.name}" 플랜을 불러오시겠습니까?\n현재 작업이 초기화됩니다.`)) return;
-  roomW = d.roomW; roomD = d.roomD; roomH = d.roomH || 240;
-  wallSide = d.wallSide || 'top';
-  document.getElementById('room-width').value = roomW;
-  document.getElementById('room-depth').value = roomD;
-  document.getElementById('room-height').value = roomH;
-  document.getElementById('wall-side').value = wallSide;
-  
-  placedModules = [];
-  idCounter = 1;
-  if (d.modules) {
-    d.modules.forEach(pm => {
-      const mod = findModuleById(pm.modId);
-      if (mod) {
-        placedModules.push({
-          uid: 'mod_' + (idCounter++),
-          modId: pm.modId,
-          x: pm.x, y: pm.y,
-          w: pm.w, d: pm.d,
-          mod: mod,
-        });
-      }
-    });
-  }
-  selectedId = null;
-  calcScale();
-  drawRoom();
-  updateSummary();
-  updatePlacedList();
-  closeSaveModal();
-  alert(`"${d.name}" 플랜을 불러왔습니다.`);
-}
-
-function deletePlan(id, e) {
-  e.stopPropagation();
-  if (!confirm('이 플랜을 삭제하시겠습니까?')) return;
-  db.collection("apps/app-mugqkgel/items").doc(id).delete().then(() => {
-    loadPlanList();
-  });
-}
-
-// ===================== 견적서 출력 =====================
-function printEstimate() {
-  const totalPrice = placedModules.reduce((s, pm) => s + pm.mod.price, 0);
-  let rows = '';
-  const grouped = {};
-  placedModules.forEach(pm => {
-    if (!grouped[pm.modId]) grouped[pm.modId] = { mod: pm.mod, count: 0 };
-    grouped[pm.modId].count++;
-  });
-  Object.values(grouped).forEach(g => {
-    rows += `<tr>
-      <td>${g.mod.icon} ${g.mod.name}</td>
-      <td>폭${g.mod.w}×높이${g.mod.h}×깊이${g.mod.d}cm</td>
-      <td style="text-align:center;">${g.count}</td>
-      <td style="text-align:right;">₩${g.mod.price.toLocaleString()}</td>
-      <td style="text-align:right;">₩${(g.mod.price * g.count).toLocaleString()}</td>
-    </tr>`;
-  });
-
-  const win = window.open('', '_blank');
-  win.document.write(`
-    <!DOCTYPE html><html><head><meta charset="UTF-8">
-    <title>시스템행거장 견적서</title>
-    <style>
-      body { font-family: 'Malgun Gothic', sans-serif; max-width: 800px; margin: 40px auto; color: #333; }
-      h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
-      .info { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; background: #f8f9fa; padding: 16px; border-radius: 8px; }
-      .info-item label { font-size: 12px; color: #888; display: block; }
-      .info-item span { font-weight: 700; font-size: 15px; }
-      table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-      th { background: #2c3e50; color: white; padding: 10px 12px; font-size: 13px; }
-      td { padding: 8px 12px; border-bottom: 1px solid #eee; font-size: 13px; }
-      tr:nth-child(even) { background: #f9f9f9; }
-      .total { text-align: right; font-size: 20px; font-weight: 700; color: #e74c3c; padding: 16px; background: #fff3cd; border-radius: 8px; margin-top: 20px; }
-      .footer { text-align: center; color: #aaa; font-size: 12px; margin-top: 40px; }
-    </style>
-    </head><body>
-    <h1>🏠 시스템행거장 배치 견적서</h1>
-    <div class="info">
-      <div class="info-item"><label>견적 일자</label><span>${new Date().toLocaleDateString('ko-KR')}</span></div>
-      <div class="info-item"><label>방 크기</label><span>${roomW}(가로) × ${roomD}(세로) × ${roomH}(높이) cm</span></div>
-      <div class="info-item"><label>총 모듈 수</label><span>${placedModules.length}개</span></div>
-      <div class="info-item"><label>설치 벽 위치</label><span>${{top:'위쪽',bottom:'아래쪽',left:'왼쪽',right:'오른쪽'}[wallSide]} 벽</span></div>
-    </div>
-    <table>
-      <thead><tr><th>모듈명</th><th>규격</th><th>수량</th><th>단가</th><th>소계</th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="5" style="text-align:center;color:#aaa;">배치된 모듈 없음</td></tr>'}</tbody>
-    </table>
-    <div class="total">총 견적 금액: ₩${totalPrice.toLocaleString()} (VAT 별도)</div>
-    <p style="color:#888;font-size:12px;margin-top:8px;">* 위 금액은 모듈 제품 기준이며, 설치비는 별도입니다.</p>
-    <div class="footer">시스템행거장 온라인 플래너 | 본 견적서는 참고용입니다.</div>
-    <script>window.print();<\/script>
-    </body></html>
-  `);
-}
-
-// ===================== 초기화 =====================
-function init() {
-  renderCatalog();
-  setTimeout(() => {
-    calcScale();
-    drawRoom();
-    updateSummary();
-    updatePlacedList();
-    setTool('select');
-  }, 100);
-}
-
-window.addEventListener('resize', () => {
-  calcScale();
-  drawRoom();
-});
-
-init();
+load();syncInputs();applyColors();buildRoom();resetCam();size3();refreshAll();
+})();
 </script>
 </body>
 </html>
